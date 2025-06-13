@@ -13,7 +13,7 @@
 # 脚本信息
 "1.0.0"
 "gotool"
-"https://ghproxy.1888866.xyz/raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+"https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 "/usr/local/bin/$SCRIPT_NAME"
 
 # 服务端配置
