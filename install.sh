@@ -11,7 +11,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
