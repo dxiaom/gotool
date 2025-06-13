@@ -14,7 +14,7 @@ NC='\033[0m' # 重置颜色
 SCRIPT_VERSION="1.0.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
-REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
 
 # 安装自身到系统
 install_self() {
