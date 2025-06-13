@@ -1,39 +1,39 @@
 #!/bin/bash
 
 # 定义颜色代码
-'\033[0;35m'
-'\033[1;37m'
-'\033[0;34m'
-'\033[0;32m'
-'\033[0;33m'
-'\033[0;31m'
-'\033[0;36m'
-'\033[0m' # 重置颜色
+PURPLE='\033[0;35m'
+WHITE='\033[1;37m'
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m' # 重置颜色
 
 # 脚本信息
-"1.0.0"
-"gotool"
-"https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
-"/usr/local/bin/$SCRIPT_NAME"
+SCRIPT_VERSION="1.0.0"
+SCRIPT_NAME="gotool"
+REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 
 # 服务端配置
-"/usr/local/gostc-admin"
-"server"
-"gostc-admin"
-"${SERVER_TARGET_DIR}/config.yml"
+SERVER_TARGET_DIR="/usr/local/gostc-admin"
+SERVER_BINARY_NAME="server"
+SERVER_SERVICE_NAME="gostc-admin"
+SERVER_CONFIG_FILE="${SERVER_TARGET_DIR}/config.yml"
 
 # 节点客户端配置
-"/usr/local/bin"
-"gostc"
-"gostc"
+CLIENT_TARGET_DIR="/usr/local/bin"
+CLIENT_BINARY_NAME="gostc"
+CLIENT_SERVICE_NAME="gostc"
 
 # 首次运行安装
 first_run_install() {
-"$INSTALL_PATH"then
--e "${YELLOW}▶ 首次运行，安装工具箱到系统...${NC}"
-"$0" "$INSTALL_PATH"
-"$INSTALL_PATH"
--e "${GREEN}✓ 工具箱安装完成！请使用 ${WHITE}gotool ${GREEN}命令运行工具箱${NC}"
+    if [ ! -f "$INSTALL_PATH" ]; then
+        echo -e "${YELLOW}▶ 首次运行，安装工具箱到系统...${NC}"
+        sudo cp "$0" "$INSTALL_PATH"
+        sudo chmod +x "$INSTALL_PATH"
+        echo -e "${GREEN}✓ 工具箱安装完成！请使用 ${WHITE}gotool ${GREEN}命令运行工具箱${NC}"
     fi
 }
 
