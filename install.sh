@@ -3,7 +3,7 @@
 # ==============================================
 # GOSTC 全能服务管理工具箱 v2.0
 # 优化更新：2023-12-15
-# 远程更新：https://gh-proxy.com/raw.githubusercontent.com/dxiaom/gotool/main/install.sh
+# 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh
 # ==============================================
 
 # 定义颜色代码
