@@ -23,7 +23,7 @@ NC='\033[0m' # 重置颜色
 # 配置参数
 TOOL_NAME="gotool"
 TOOL_PATH="/usr/local/bin/$TOOL_NAME"
-SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
 
 # 服务端配置
 SERVER_TARGET_DIR="/usr/local/gostc-admin"
