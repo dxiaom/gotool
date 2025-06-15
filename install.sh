@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.0
+# 版本: v2.1
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
-# v2.1 - 增加架构检测优化和返回上级菜单功能
+# v2.1 - 修复管道安装问题，优化架构检测和菜单逻辑
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -45,8 +45,12 @@ install_toolbox() {
         exit 0
     fi
     
-    echo -e "${BLUE}▶ 正在安装工具箱到 ${WHITE}$TOOL_PATH${NC}"
-    sudo cp "$0" "$TOOL_PATH"
+    echo -e "${BLUE}▶ 正在从网络下载最新工具箱...${NC}"
+    sudo curl -s -o "$TOOL_PATH" "$SCRIPT_URL"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ 下载工具箱失败，请检查网络连接！${NC}"
+        exit 1
+    fi
     sudo chmod +x "$TOOL_PATH"
     
     echo ""
@@ -751,4 +755,10 @@ main_menu() {
 }
 
 # 脚本入口
-main_menu
+if [ "$1" != "--installed" ]; then
+    # 首次运行或通过管道运行
+    main_menu
+else
+    # 已安装版本运行
+    main_menu
+fi
