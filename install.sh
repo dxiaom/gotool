@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==============================================
-# GOSTC 全能服务管理工具箱 v3.0
-# 最后更新：2023-12-16
+# GOSTC 全能服务管理工具箱 v3.1
+# 修复更新：2023-12-16
 # 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 # ==============================================
 
@@ -17,20 +17,10 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="3.0.0"
+SCRIPT_VERSION="2.4.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
-CHANGELOG_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/CHANGELOG.md"
-
-# 更新日志（当前版本）
-CURRENT_CHANGELOG="${GREEN}版本 ${SCRIPT_VERSION} 更新日志:${NC}
-• 新增更新日志查看功能
-• 优化安装流程，减少权限问题
-• 增强错误处理机制
-• 改进用户界面体验"
-
-# 工具箱横幅
 TOOLBOX_BANNER="${PURPLE}
 ╔══════════════════════════════════════════════════╗
 ║               ${WHITE}GOSTC 服务管理工具箱 ${PURPLE}v${SCRIPT_VERSION}          ║
@@ -54,16 +44,15 @@ install_self() {
     TEMP_FILE=$(mktemp)
     
     # 下载文件到临时位置
-    if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TEMP_FILE" 2>/dev/null; then
+    if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TEMP_FILE"; then
         echo -e "${RED}✗ 工具箱下载失败! 请检查网络连接${NC}"
         rm -f "$TEMP_FILE"
         return 1
     fi
     
     # 移动文件到目标位置
-    if ! sudo mv "$TEMP_FILE" "$INSTALL_PATH" 2>/dev/null; then
+    if ! sudo mv "$TEMP_FILE" "$INSTALL_PATH"; then
         echo -e "${RED}✗ 文件移动失败! 请检查权限${NC}"
-        echo -e "${YELLOW}尝试手动安装: sudo curl -sSL $REMOTE_SCRIPT_URL -o $INSTALL_PATH && sudo chmod +x $INSTALL_PATH${NC}"
         rm -f "$TEMP_FILE"
         return 1
     fi
@@ -77,41 +66,6 @@ install_self() {
     return 0
 }
 
-# 显示更新日志
-show_changelog() {
-    echo -e "${PURPLE}"
-    echo "╔══════════════════════════════════════════════════╗"
-    echo -e "║               ${WHITE}更 新 日 志${PURPLE}                     ║"
-    echo "╠══════════════════════════════════════════════════╣"
-    
-    # 显示当前版本日志
-    echo -e "║  ${GREEN}当前版本 ${SCRIPT_VERSION}${NC}"
-    echo -e "$CURRENT_CHANGELOG" | while IFS= read -r line; do
-        echo -e "║  ${WHITE}$line${NC}"
-    done
-    
-    # 获取远程更新日志
-    echo -e "╠══════════════════════════════════════════════════╣"
-    echo -e "║  ${YELLOW}检查最新更新日志...${NC}"
-    
-    REMOTE_CHANGELOG=$(curl -sSf "$CHANGELOG_URL" 2>/dev/null)
-    
-    if [[ -z "$REMOTE_CHANGELOG" ]]; then
-        echo -e "║  ${YELLOW}⚠ 无法获取远程更新日志${NC}"
-    else
-        echo -e "║  ${GREEN}最新更新日志:${NC}"
-        echo "$REMOTE_CHANGELOG" | head -n 10 | while IFS= read -r line; do
-            echo -e "║  ${WHITE}$line${NC}"
-        done
-        echo -e "║  ${CYAN}完整日志: $CHANGELOG_URL${NC}"
-    fi
-    
-    echo "╚══════════════════════════════════════════════════╝"
-    echo -e "${NC}"
-    
-    read -rp "$(echo -e "${BLUE}按回车键返回...${NC}")"
-}
-
 # 检查更新
 check_update() {
     echo -e "${YELLOW}▶ 检查工具箱更新...${NC}"
@@ -120,7 +74,7 @@ check_update() {
     TEMP_FILE=$(mktemp)
     
     # 获取远程脚本
-    if ! curl -sSf "$REMOTE极SCRIPT_URL" -o "$TEMP_FILE" 2>/dev/null; then
+    if ! curl -sSf "$REMOTE_SCRIPT_URL" -o "$TEMP_FILE"; then
         echo -e "${YELLOW}⚠ 无法获取远程版本信息${NC}"
         rm -f "$TEMP_FILE"
         return
@@ -137,18 +91,6 @@ check_update() {
     
     if [[ "$remote_version" != "$SCRIPT_VERSION" ]]; then
         echo -e "${YELLOW}发现新版本: $remote_version (当前: $SCRIPT_VERSION)${NC}"
-        
-        # 显示更新内容
-        echo -e "${CYAN}════════════════ 更新内容 ═════════════════${NC}"
-        REMOTE_CHANGELOG=$(curl -sSf "$CHANGELOG_URL" 2>/dev/null)
-        if [[ -n "$REMOTE_CHANGELOG" ]]; then
-            echo "$REMOTE_CHANGELOG" | grep -A5 "## \[$remote_version\]" | sed 's/^## //; s/^- /• /'
-        else
-            echo -e "${YELLOW}无法获取更新详情，请访问:${NC}"
-            echo -e "${BLUE}$CHANGELOG_URL${NC}"
-        fi
-        echo -e "${CYAN}════════════════════════════════════════════${NC}"
-        
         read -p "$(echo -e "${BLUE}是否更新到最新版本? (y/n, 默认y): ${NC}")" update_choice
         
         if [[ ! "$update_choice" =~ ^[Nn]$ ]]; then
@@ -156,15 +98,14 @@ check_update() {
             
             # 再次使用临时文件
             UPDATE_TEMP=$(mktemp)
-            if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$UPDATE_TEMP" 2>/dev/null; then
+            if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$UPDATE_TEMP"; then
                 echo -e "${RED}✗ 更新失败! 请重试或手动下载${NC}"
                 rm -f "$UPDATE_TEMP"
                 return
             fi
             
-            if ! sudo mv "$UPDATE_TEMP" "$0" 2>/dev/null; then
-                echo -e "${RED}✗ 更新失败! 请尝试使用sudo运行${NC}"
-                echo -e "${YELLOW}手动更新命令: sudo curl -sSL $REMOTE_SCRIPT_URL -o $0${NC}"
+            if ! sudo mv "$UPDATE_TEMP" "$0"; then
+                echo -e "${RED}✗ 更新失败! 请检查权限${NC}"
                 rm -f "$UPDATE_TEMP"
                 return
             fi
@@ -241,7 +182,7 @@ get_architecture() {
             local FLOAT="softfloat"
             lscpu 2>/dev/null | grep -qi "FPU" && FLOAT="hardfloat"
             lscpu 2>/dev/null | grep -qi "little endian" && \
-                FILE_SUFFIX="mipsle_$极FLOAT" || \
+                FILE_SUFFIX="mipsle_$FLOAT" || \
                 FILE_SUFFIX="mips_$FLOAT"
             ;;
         "riscv64") FILE_SUFFIX="riscv64_rva20u64" ;;
@@ -286,7 +227,7 @@ download_component() {
     temp_file=$(mktemp)
     
     # 下载文件到临时位置
-    if ! curl -# -fL -o "$temp_file" "$download_url" 2>/dev/null; then
+    if ! curl -# -fL -o "$temp_file" "$download_url"; then
         echo -e "${RED}✗ 下载失败! 可能原因:${NC}"
         echo -e "1. 网络连接问题"
         echo -e "2. 平台暂不支持 ($arch_info)"
@@ -361,7 +302,7 @@ install_server() {
         read -rp "请输入选项 (1-3): " choice
         case "$choice" in
             2)
-                echo -e "${YELLOW}▶ 开始全新安装...${NC}"
+                echo -极e "${YELLOW}▶ 开始全新安装...${NC}"
                 sudo rm -rf "${TARGET_DIR}"
                 ;;
             3)
@@ -375,7 +316,7 @@ install_server() {
     fi
 
     # 版本选择
-    echo -e "${BLUE}请选择版本:${NC}"
+    echo -e "${BL极}请选择版本:${NC}"
     echo -e "1. 普通版 (默认)"
     echo -e "2. 商业版 (需要授权)"
     
@@ -458,9 +399,9 @@ manage_server() {
         echo -e "║  状态: $status_text                            ║"
         echo -e "║  路径: ${WHITE}$TARGET_DIR${PURPLE}               ║"
         echo "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1.${PURPLE} ${WHITE}安装/更新服务端${PURPLE}                        ║"
+        echo -e "极  ${CYAN}1.${PURPLE} ${WHITE}安装/更新服务端${PURPLE}                        ║"
         echo -e "║  ${CYAN}2.${PURPLE} ${WHITE}启动服务${PURPLE}                              ║"
-        echo -e "║  ${CYAN}3.${极}${WHITE}停止服务${PURPLE}                              ║"
+        echo -e "║  ${CYAN}3.${PURPLE} ${WHITE}停止服务${PURPLE}                              ║"
         echo -e "║  ${CYAN}4.${PURPLE} ${WHITE}重启服务${PURPLE}                              ║"
         echo -e "║  ${CYAN}5.${PURPLE} ${WHITE}查看状态${PURPLE}                              ║"
         echo -e "║  ${CYAN}6.${PURPLE} ${WHITE}卸载服务${PURPLE}                              ║"
@@ -572,7 +513,7 @@ install_node() {
 
     # 开始安装
     if ! download_component "gostc" "standard" "$TARGET_DIR"; then
-        echo -e "${RED}✗ 节点安装失败${NC}"
+        echo -e "${RED}✗ 节点安装失败${极}"
         return
     fi
 
@@ -848,17 +789,15 @@ main_menu() {
         echo -e "${CYAN}1. ${WHITE}服务端管理${NC}"
         echo -e "${CYAN}2. ${WHITE}节点/客户端管理${NC}"
         echo -e "${CYAN}3. ${WHITE}更新工具箱${NC}"
-        echo -e "${CYAN}4. ${WHITE}查看更新日志${NC}"
         echo -e "${CYAN}0. ${WHITE}退出${NC}"
         echo -e "${CYAN}════════════════════════════════════════${NC}"
         
-        read -p "请输入选项 (0-4): " choice
+        read -p "请输入选项 (0-3): " choice
         
         case $choice in
             1) manage_server ;;
             2) manage_client ;;
             3) check_update ;;
-            4) show_changelog ;;
             0)
                 echo -e "${GREEN}感谢使用，再见!${NC}"
                 exit 0
@@ -900,8 +839,5 @@ else
         echo -e "${GREEN}✓ 安装完成，请使用命令 ${WHITE}gotool${GREEN} 启动工具箱${NC}"
     else
         echo -e "${RED}✗ 安装失败，请检查错误信息${NC}"
-        echo -e "${YELLOW}尝试手动安装:"
-        echo -e "sudo curl -sSL $REMOTE_SCRIPT_URL -o $INSTALL_PATH"
-        echo -e "sudo chmod +x $INSTALL_PATH${NC}"
     fi
 fi
