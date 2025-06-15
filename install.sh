@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.3
+# 版本: v2.4
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
 # v2.1 - 修复管道安装问题，优化架构检测
 # v2.2 - 修复显示对齐问题，优化菜单布局
 # v2.3 - 修复更新日志显示问题，优化更新机制
+# v2.4 - 移除边框效果，简化界面设计
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -37,9 +38,9 @@ CLIENT_SERVICE="gostc"
 # 安装工具箱
 install_toolbox() {
     echo -e "${PURPLE}"
-    echo "╔══════════════════════════════════════════════════╗"
-    echo -e "║            ${WHITE}GOSTC 服务管理工具箱安装${PURPLE}            ║"
-    echo "╚══════════════════════════════════════════════════╝"
+    echo "================================"
+    echo -e "  ${WHITE}GOSTC 服务管理工具箱安装${PURPLE}"
+    echo "================================"
     echo -e "${NC}"
     
     if [ -f "$TOOL_PATH" ]; then
@@ -66,10 +67,10 @@ install_toolbox() {
 show_title() {
     clear
     echo -e "${PURPLE}"
-    echo "╔══════════════════════════════════════════════════╗"
-    echo -e "║              ${WHITE}GOSTC 服务管理工具箱${PURPLE}             ║"
-    echo -e "║               ${YELLOW}版本: v2.3${PURPLE}                   ║"
-    echo "╚══════════════════════════════════════════════════╝"
+    echo "================================"
+    echo -e "  ${WHITE}GOSTC 服务管理工具箱${PURPLE}"
+    echo -e "  版本: ${YELLOW}v2.4${PURPLE}"
+    echo "================================"
     echo -e "${NC}"
 }
 
@@ -137,9 +138,9 @@ get_service_status() {
 install_server() {
     show_title
     echo -e "${PURPLE}"
-    echo "╔══════════════════════════════════════════════════╗"
-    echo -e "║              ${WHITE}GOSTC 服务端安装向导${PURPLE}              ║"
-    echo "╚══════════════════════════════════════════════════╝"
+    echo "================================"
+    echo -e "  ${WHITE}GOSTC 服务端安装向导${PURPLE}"
+    echo "================================"
     echo -e "${NC}"
 
     # 检查是否已安装
@@ -201,7 +202,7 @@ install_server() {
 
     echo ""
     echo -e "${BLUE}▶ 开始安装 ${PURPLE}服务端 ${BLUE}(${VERSION_NAME})${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # 获取架构信息
     local ARCH_INFO=$(detect_arch)
@@ -222,7 +223,7 @@ install_server() {
     DOWNLOAD_URL="${BASE_URL}/${FILE_NAME}"
 
     echo -e "${BLUE}▷ 下载文件: ${WHITE}${FILE_NAME}${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # 创建目标目录
     sudo mkdir -p "$SERVER_TARGET_DIR" >/dev/null 2>&1
@@ -244,7 +245,7 @@ install_server() {
     # 解压文件
     echo ""
     echo -e "${BLUE}▶ 正在安装到: ${WHITE}${SERVER_TARGET_DIR}${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # 更新模式：保留配置文件
     if [ "$UPDATE_MODE" = true ]; then
@@ -283,7 +284,7 @@ install_server() {
     # 初始化服务
     echo ""
     echo -e "${BLUE}▶ 正在初始化服务...${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # 检查是否已安装服务
     if ! sudo systemctl list-units --full -all | grep -Fq "${SERVER_SERVICE}.service"; then
@@ -294,7 +295,7 @@ install_server() {
     # 启动服务
     echo ""
     echo -e "${BLUE}▶ 正在启动服务...${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     sudo systemctl daemon-reload
     sudo systemctl enable "$SERVER_SERVICE" >/dev/null 2>&1
@@ -307,7 +308,7 @@ install_server() {
     sleep 2
     echo ""
     echo -e "${BLUE}▶ 服务状态检查${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     SERVICE_STATUS=$(systemctl is-active "$SERVER_SERVICE")
     if [ "$SERVICE_STATUS" = "active" ]; then
@@ -319,28 +320,28 @@ install_server() {
 
     # 安装完成提示
     echo ""
-    echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
-    echo -e "║                   ${WHITE}${INSTALL_MODE:-安装}完成${PURPLE}                   ║"
-    echo -e "╠══════════════════════════════════════════════════╣"
-    echo -e "║  操作类型: ${WHITE}$([ "$UPDATE_MODE" = true ] && echo "更新" || echo "${INSTALL_MODE:-安装}")${PURPLE}                     ║"
-    echo -e "║  版本: ${WHITE}${VERSION_NAME}${PURPLE}                             ║"
-    echo -e "║  安装目录: ${WHITE}$SERVER_TARGET_DIR${PURPLE}                     ║"
-    echo -e "╠══════════════════════════════════════════════════╣"
-    echo -e "║  服务状态: $(if [ "$SERVICE_STATUS" = "active" ]; then echo -e "${GREEN}运行中${PURPLE}"; else echo -e "${YELLOW}未运行${PURPLE}"; fi)                          ║"
-    echo -e "║  访问地址: ${WHITE}http://localhost:8080${PURPLE}             ║"
-    echo -e "║  管理命令: ${WHITE}sudo systemctl [start|stop|restart|status] ${SERVER_SERVICE}${PURPLE} ║"
-    echo -e "╚══════════════════════════════════════════════════╝"
+    echo -e "${PURPLE}================================"
+    echo -e "  ${WHITE}${INSTALL_MODE:-安装}完成${PURPLE}"
+    echo "--------------------------------"
+    echo -e "  操作类型: ${WHITE}$([ "$UPDATE_MODE" = true ] && echo "更新" || echo "${INSTALL_MODE:-安装}")${PURPLE}"
+    echo -e "  版本: ${WHITE}${VERSION_NAME}${PURPLE}"
+    echo -e "  安装目录: ${WHITE}$SERVER_TARGET_DIR${PURPLE}"
+    echo "--------------------------------"
+    echo -e "  服务状态: $(if [ "$SERVICE_STATUS" = "active" ]; then echo -e "${GREEN}运行中${PURPLE}"; else echo -e "${YELLOW}未运行${PURPLE}"; fi)"
+    echo -e "  访问地址: ${WHITE}http://localhost:8080${PURPLE}"
+    echo -e "  管理命令: ${WHITE}sudo systemctl [start|stop|restart|status] ${SERVER_SERVICE}${PURPLE}"
+    echo -e "================================"
     echo -e "${NC}"
 
     # 显示初始凭据
     if [ ! -f "$SERVER_CONFIG" ] && [ "$UPDATE_MODE" != "true" ]; then
         echo ""
-        echo -e "${YELLOW}════════════════ 重要提示 ══════════════════${NC}"
+        echo -e "${YELLOW}============ 重要提示 ============${NC}"
         echo -e "${YELLOW}首次安装，请使用以下默认凭据登录:${NC}"
         echo -e "${CYAN}用户名: ${WHITE}admin${NC}"
         echo -e "${CYAN}密码: ${WHITE}admin${NC}"
         echo -e "${YELLOW}登录后请立即修改密码${NC}"
-        echo -e "${YELLOW}════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}=================================${NC}"
     fi
 
     read -n 1 -s -r -p "按任意键返回主菜单..."
@@ -351,19 +352,20 @@ install_server() {
 server_menu() {
     while true; do
         show_title
-        echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
-        echo -e "║                ${WHITE}服务端管理${PURPLE}                  ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务状态: $(get_service_status $SERVER_SERVICE)                  ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}安装/更新服务端                          ║"
-        echo -e "║  ${CYAN}2. ${WHITE}启动服务端                              ║"
-        echo -e "║  ${CYAN}3. ${WHITE}停止服务端                              ║"
-        echo -e "║  ${CYAN}4. ${WHITE}重启服务端                              ║"
-        echo -e "║  ${CYAN}5. ${WHITE}卸载服务端                              ║"
-        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单                              ║"
-        echo -e "╚══════════════════════════════════════════════════╝${NC}"
-        echo ""
+        echo -e "${PURPLE}"
+        echo "================================"
+        echo -e "  ${WHITE}服务端管理${PURPLE}"
+        echo "--------------------------------"
+        echo -e "  服务状态: $(get_service_status $SERVER_SERVICE)"
+        echo "--------------------------------"
+        echo -e "  ${CYAN}1. ${WHITE}安装/更新服务端"
+        echo -e "  ${CYAN}2. ${WHITE}启动服务端"
+        echo -e "  ${CYAN}3. ${WHITE}停止服务端"
+        echo -e "  ${CYAN}4. ${WHITE}重启服务端"
+        echo -e "  ${CYAN}5. ${WHITE}卸载服务端"
+        echo -e "  ${CYAN}0. ${WHITE}返回主菜单"
+        echo -e "================================"
+        echo -e "${NC}"
 
         read -rp "请输入选项编号 (0-5): " choice
         case $choice in
@@ -424,9 +426,9 @@ server_menu() {
 install_client() {
     show_title
     echo -e "${PURPLE}"
-    echo "╔══════════════════════════════════════════════════╗"
-    echo -e "║            ${WHITE}GOSTC 节点/客户端安装向导${PURPLE}          ║"
-    echo "╚══════════════════════════════════════════════════╝"
+    echo "================================"
+    echo -e "  ${WHITE}GOSTC 节点/客户端安装向导${PURPLE}"
+    echo "================================"
     echo -e "${NC}"
 
     # 选择安装类型
@@ -470,7 +472,7 @@ install_client() {
     DOWNLOAD_URL="${BASE_URL}/${FILE_NAME}"
 
     echo -e "${BLUE}▷ 下载文件: ${WHITE}${FILE_NAME}${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # 创建目标目录
     sudo mkdir -p "$CLIENT_TARGET_DIR" >/dev/null 2>&1
@@ -492,7 +494,7 @@ install_client() {
     # 解压文件
     echo ""
     echo -e "${BLUE}▶ 正在安装到: ${WHITE}${CLIENT_TARGET_DIR}${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     sudo rm -f "$CLIENT_TARGET_DIR/$CLIENT_BINARY"  # 清理旧版本
     if [[ "$FILE_NAME" == *.zip ]]; then
@@ -516,11 +518,11 @@ install_client() {
     # 配置提示
     echo ""
     echo -e "${BLUE}▶ ${COMPONENT_TYPE}配置${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
     echo -e "${GREEN}提示: 请准备好以下信息："
     echo -e "  - 服务器地址 (如: example.com:8080)"
     echo -e "  - ${COMPONENT_TYPE}密钥 (由服务端提供)${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo "--------------------------------"
 
     # TLS选项
     local use_tls="false"
@@ -597,17 +599,17 @@ install_client() {
 
     # 安装完成提示
     echo ""
-    echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
-    echo -e "║               ${WHITE}${COMPONENT_TYPE}安装成功${PURPLE}               ║"
-    echo -e "╠══════════════════════════════════════════════════╣"
-    echo -e "║  组件类型: ${WHITE}${COMPONENT_TYPE}                          ║"
-    echo -e "║  安装目录: ${WHITE}$CLIENT_TARGET_DIR                     ║"
-    echo -e "║  服务器地址: ${WHITE}$server_addr                    ║"
-    echo -e "║  TLS: ${WHITE}$use_tls                              ║"
+    echo -e "${PURPLE}================================"
+    echo -e "  ${WHITE}${COMPONENT_TYPE}安装成功${PURPLE}"
+    echo "--------------------------------"
+    echo -e "  组件类型: ${WHITE}${COMPONENT_TYPE}${PURPLE}"
+    echo -e "  安装目录: ${WHITE}$CLIENT_TARGET_DIR${PURPLE}"
+    echo -e "  服务器地址: ${WHITE}$server_addr${PURPLE}"
+    echo -e "  TLS: ${WHITE}$use_tls${PURPLE}"
     if [ -n "$proxy_base_url" ]; then
-        echo -e "║  网关地址: ${WHITE}$proxy_base_url               ║"
+        echo -e "  网关地址: ${WHITE}$proxy_base_url${PURPLE}"
     fi
-    echo -e "╚══════════════════════════════════════════════════╝"
+    echo -e "================================"
     echo -e "${NC}"
 
     read -n 1 -s -r -p "按任意键返回主菜单..."
@@ -618,19 +620,20 @@ install_client() {
 client_menu() {
     while true; do
         show_title
-        echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
-        echo -e "║             ${WHITE}节点/客户端管理${PURPLE}               ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务状态: $(get_service_status $CLIENT_SERVICE)                  ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}安装/配置节点/客户端                  ║"
-        echo -e "║  ${CYAN}2. ${WHITE}启动节点/客户端                      ║"
-        echo -e "║  ${CYAN}3. ${WHITE}停止节点/客户端                      ║"
-        echo -e "║  ${CYAN}4. ${WHITE}重启节点/客户端                      ║"
-        echo -e "║  ${CYAN}5. ${WHITE}卸载节点/客户端                      ║"
-        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单                          ║"
-        echo -e "╚══════════════════════════════════════════════════╝${NC}"
-        echo ""
+        echo -e "${PURPLE}"
+        echo "================================"
+        echo -e "  ${WHITE}节点/客户端管理${PURPLE}"
+        echo "--------------------------------"
+        echo -e "  服务状态: $(get_service_status $CLIENT_SERVICE)"
+        echo "--------------------------------"
+        echo -e "  ${CYAN}1. ${WHITE}安装/配置节点/客户端"
+        echo -e "  ${CYAN}2. ${WHITE}启动节点/客户端"
+        echo -e "  ${CYAN}3. ${WHITE}停止节点/客户端"
+        echo -e "  ${CYAN}4. ${WHITE}重启节点/客户端"
+        echo -e "  ${CYAN}5. ${WHITE}卸载节点/客户端"
+        echo -e "  ${CYAN}0. ${WHITE}返回主菜单"
+        echo -e "================================"
+        echo -e "${NC}"
 
         read -rp "请输入选项编号 (0-5): " choice
         case $choice in
@@ -735,18 +738,19 @@ main_menu() {
 
     while true; do
         show_title
-        echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
-        echo -e "║                   ${WHITE}主菜单${PURPLE}                     ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务端状态: $(get_service_status $SERVER_SERVICE)                ║"
-        echo -e "║  节点状态:   $(get_service_status $CLIENT_SERVICE)                ║"
-        echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}服务端管理                           ║"
-        echo -e "║  ${CYAN}2. ${WHITE}节点/客户端管理                      ║"
-        echo -e "║  ${CYAN}3. ${WHITE}检查更新                             ║"
-        echo -e "║  ${CYAN}0. ${WHITE}退出                                ║"
-        echo -e "╚══════════════════════════════════════════════════╝${NC}"
-        echo ""
+        echo -e "${PURPLE}"
+        echo "================================"
+        echo -e "  ${WHITE}主菜单${PURPLE}"
+        echo "--------------------------------"
+        echo -e "  服务端状态: $(get_service_status $SERVER_SERVICE)"
+        echo -e "  节点状态:   $(get_service_status $CLIENT_SERVICE)"
+        echo "--------------------------------"
+        echo -e "  ${CYAN}1. ${WHITE}服务端管理"
+        echo -e "  ${CYAN}2. ${WHITE}节点/客户端管理"
+        echo -e "  ${CYAN}3. ${WHITE}检查更新"
+        echo -e "  ${CYAN}0. ${WHITE}退出"
+        echo -e "================================"
+        echo -e "${NC}"
 
         read -rp "请输入选项编号 (0-3): " choice
         case $choice in
