@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==============================================
-# GOSTC 全能服务管理工具箱 v2.3
-# 修复更新：2023-12-15
+# GOSTC 全能服务管理工具箱 v2.4
+# 修复更新：2023-12-16
 # 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 # ==============================================
 
@@ -17,7 +17,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="2.3.0"
+SCRIPT_VERSION="2.4.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
@@ -40,8 +40,20 @@ install_self() {
     echo -e "${YELLOW}▶ 正在安装工具箱到系统...${NC}"
     echo -e "${CYAN}下载地址: ${WHITE}$REMOTE_SCRIPT_URL${NC}"
     
-    if ! sudo curl -sSfL "$REMOTE_SCRIPT_URL" -o "$INSTALL_PATH"; then
-        echo -e "${RED}✗ 工具箱安装失败! 请检查网络连接${NC}"
+    # 创建临时文件
+    TEMP_FILE=$(mktemp)
+    
+    # 下载文件到临时位置
+    if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TEMP_FILE"; then
+        echo -e "${RED}✗ 工具箱下载失败! 请检查网络连接${NC}"
+        rm -f "$TEMP_FILE"
+        return 1
+    fi
+    
+    # 移动文件到目标位置
+    if ! sudo mv "$TEMP_FILE" "$INSTALL_PATH"; then
+        echo -e "${RED}✗ 文件移动失败! 请检查权限${NC}"
+        rm -f "$TEMP_FILE"
         return 1
     fi
     
@@ -58,11 +70,22 @@ install_self() {
 check_update() {
     echo -e "${YELLOW}▶ 检查工具箱更新...${NC}"
     
+    # 使用临时文件避免写入问题
+    TEMP_FILE=$(mktemp)
+    
+    # 获取远程脚本
+    if ! curl -sSf "$REMOTE_SCRIPT_URL" -o "$TEMP_FILE"; then
+        echo -e "${YELLOW}⚠ 无法获取远程版本信息${NC}"
+        rm -f "$TEMP_FILE"
+        return
+    fi
+    
     # 获取远程版本
-    remote_version=$(curl -sSf "$REMOTE_SCRIPT_URL" | grep -m1 "SCRIPT_VERSION=" | cut -d'"' -f2)
+    remote_version=$(grep -m1 "SCRIPT_VERSION=" "$TEMP_FILE" | cut -d'"' -f2)
+    rm -f "$TEMP_FILE"
     
     if [[ -z "$remote_version" ]]; then
-        echo -e "${YELLOW}⚠ 无法获取远程版本信息${NC}"
+        echo -e "${YELLOW}⚠ 无法解析远程版本${NC}"
         return
     fi
     
@@ -73,12 +96,21 @@ check_update() {
         if [[ ! "$update_choice" =~ ^[Nn]$ ]]; then
             echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
             
-            if ! sudo curl -sSfL "$REMOTE_SCRIPT_URL" -o "$0"; then
+            # 再次使用临时文件
+            UPDATE_TEMP=$(mktemp)
+            if ! curl -sSfL "$REMOTE_SCRIPT_URL" -o "$UPDATE_TEMP"; then
                 echo -e "${RED}✗ 更新失败! 请重试或手动下载${NC}"
+                rm -f "$UPDATE_TEMP"
                 return
             fi
             
-            chmod +x "$0"
+            if ! sudo mv "$UPDATE_TEMP" "$0"; then
+                echo -e "${RED}✗ 更新失败! 请检查权限${NC}"
+                rm -f "$UPDATE_TEMP"
+                return
+            fi
+            
+            sudo chmod +x "$0"
             echo -e "${GREEN}✓ 已成功更新到 v$remote_version${NC}"
             echo -e "${YELLOW}请重新运行脚本生效${NC}"
             exit 0
@@ -104,7 +136,7 @@ validate_server_address() {
     
     # 设置超时快速验证
     local status_code
-    if ! status_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$address"); then
+    if ! status_code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 "$address" 2>/dev/null); then
         echo -e "${YELLOW}⚠ 服务器连接超时，请手动验证${NC}"
         return 0
     fi
@@ -190,30 +222,37 @@ download_component() {
     echo -e "${BLUE}▷ 文件名称: ${WHITE}$file_name${NC}"
     echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
     
-    # 创建目标目录
-    sudo mkdir -p "$target_dir" >/dev/null 2>&1
+    # 创建临时文件
+    local temp_file
+    temp_file=$(mktemp)
     
-    # 下载文件
-    if ! curl -# -fL -o "$file_name" "$download_url"; then
+    # 下载文件到临时位置
+    if ! curl -# -fL -o "$temp_file" "$download_url"; then
         echo -e "${RED}✗ 下载失败! 可能原因:${NC}"
         echo -e "1. 网络连接问题"
         echo -e "2. 平台暂不支持 ($arch_info)"
         echo -e "3. 资源路径错误"
         echo -e "${YELLOW}URL: $download_url${NC}"
+        rm -f "$temp_file"
         return 1
     fi
+    
+    # 创建目标目录
+    sudo mkdir -p "$target_dir" >/dev/null 2>&1
     
     # 解压文件
     echo -e "${BLUE}▶ 正在安装到: ${WHITE}$target_dir${NC}"
     
     if [[ "$file_name" == *.zip ]]; then
-        if ! sudo unzip -qo "$file_name" -d "$target_dir"; then
+        if ! sudo unzip -qo "$temp_file" -d "$target_dir"; then
             echo -e "${RED}✗ 解压失败! 文件可能损坏${NC}"
+            rm -f "$temp_file"
             return 1
         fi
     else
-        if ! sudo tar xzf "$file_name" -C "$target_dir"; then
+        if ! sudo tar xzf "$temp_file" -C "$target_dir"; then
             echo -e "${RED}✗ 解压失败! 文件可能损坏${NC}"
+            rm -f "$temp_file"
             return 1
         fi
     fi
@@ -227,11 +266,12 @@ download_component() {
         echo -e "${GREEN}✓ 安装成功: ${WHITE}$target_dir/$binary_name${NC}"
     else
         echo -e "${RED}✗ 文件未找到: $binary_name${NC}"
+        rm -f "$temp_file"
         return 1
     fi
     
     # 清理临时文件
-    rm -f "$file_name"
+    rm -f "$temp_file"
     return 0
 }
 
@@ -262,7 +302,7 @@ install_server() {
         read -rp "请输入选项 (1-3): " choice
         case "$choice" in
             2)
-                echo -e "${YELLOW}▶ 开始全新安装...${NC}"
+                echo -极e "${YELLOW}▶ 开始全新安装...${NC}"
                 sudo rm -rf "${TARGET_DIR}"
                 ;;
             3)
@@ -276,7 +316,7 @@ install_server() {
     fi
 
     # 版本选择
-    echo -e "${BLUE}请选择版本:${NC}"
+    echo -e "${BL极}请选择版本:${NC}"
     echo -e "1. 普通版 (默认)"
     echo -e "2. 商业版 (需要授权)"
     
@@ -359,7 +399,7 @@ manage_server() {
         echo -e "║  状态: $status_text                            ║"
         echo -e "║  路径: ${WHITE}$TARGET_DIR${PURPLE}               ║"
         echo "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1.${PURPLE} ${WHITE}安装/更新服务端${PURPLE}                        ║"
+        echo -e "极  ${CYAN}1.${PURPLE} ${WHITE}安装/更新服务端${PURPLE}                        ║"
         echo -e "║  ${CYAN}2.${PURPLE} ${WHITE}启动服务${PURPLE}                              ║"
         echo -e "║  ${CYAN}3.${PURPLE} ${WHITE}停止服务${PURPLE}                              ║"
         echo -e "║  ${CYAN}4.${PURPLE} ${WHITE}重启服务${PURPLE}                              ║"
@@ -473,7 +513,7 @@ install_node() {
 
     # 开始安装
     if ! download_component "gostc" "standard" "$TARGET_DIR"; then
-        echo -e "${RED}✗ 节点安装失败${NC}"
+        echo -e "${RED}✗ 节点安装失败${极}"
         return
     fi
 
@@ -719,7 +759,7 @@ manage_client() {
                 echo -e "${YELLOW}▶ 正在卸载服务...${NC}"
                 sudo "$TARGET_DIR/$BINARY_NAME" uninstall 2>/dev/null
                 
-                echo -极e "${YELLOW}▶ 删除文件...${NC}"
+                echo -e "${YELLOW}▶ 删除文件...${NC}"
                 sudo rm -f "$TARGET_DIR/$BINARY_NAME"
                 
                 echo -e "${GREEN}✓ 服务已卸载${NC}"
@@ -782,33 +822,22 @@ if [[ ! -t 0 ]]; then
 fi
 
 # 交互模式：
-if [[ "$0" =~ gotool$ ]] || [[ "$(basename "$0")" == "gotool" ]]; then
-    # 通过gotool命令启动
-    if [[ -f "$INSTALL_PATH" ]]; then
-        main_menu
-    else
-        echo -e "${RED}错误: 工具箱未安装!${NC}"
-        echo -e "请使用以下命令安装:"
-        echo -e "curl -sSL ${REMOTE_SCRIPT_URL} | bash"
-        exit 1
-    fi
+if [[ -f "$INSTALL_PATH" ]]; then
+    # 工具箱已安装，进入主菜单
+    main_menu
 else
-    # 直接运行安装脚本
+    # 首次运行安装
+    clear
+    echo -e "$TOOLBOX_BANNER"
+    echo -e "${GREEN}首次使用，需安装工具箱到系统${NC}"
+    echo -e "${YELLOW}安装后可通过命令 ${WHITE}gotool${YELLOW} 快速启动${NC}"
+    echo ""
+    
+    install_self
+    
     if [[ -f "$INSTALL_PATH" ]]; then
-        echo -e "${GREEN}✓ 工具箱已安装，请使用命令: ${WHITE}gotool${NC}"
+        echo -e "${GREEN}✓ 安装完成，请使用命令 ${WHITE}gotool${GREEN} 启动工具箱${NC}"
     else
-        clear
-        echo -e "$TOOLBOX_BANNER"
-        echo -e "${GREEN}首次使用，需安装工具箱到系统${NC}"
-        echo -e "${YELLOW}安装后可通过命令 ${WHITE}gotool${YELLOW} 快速启动${NC}"
-        echo ""
-        
-        install_self
-        
-        if [[ -f "$INSTALL_PATH" ]]; then
-            echo -e "${GREEN}✓ 安装完成，请使用命令 ${WHITE}gotool${GREEN} 启动工具箱${NC}"
-        else
-            echo -e "${RED}✗ 安装失败，请检查错误信息${NC}"
-        fi
+        echo -e "${RED}✗ 安装失败，请检查错误信息${NC}"
     fi
 fi
