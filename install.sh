@@ -20,7 +20,7 @@ NC='\033[0m' # 重置颜色
 SCRIPT_VERSION="2.0.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
-REMOTE_SCRIPT_URL="https://gh-proxy.com/raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
 TOOLBOX_BANNER="${PURPLE}
 ╔══════════════════════════════════════════════════╗
 ║               ${WHITE}GOSTC 服务管理工具箱 ${PURPLE}v${SCRIPT_VERSION}          ║
