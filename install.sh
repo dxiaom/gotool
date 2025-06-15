@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================
-# GOSTC 全能服务管理工具箱 v2.2
+# GOSTC 全能服务管理工具箱 v2.3
 # 修复更新：2023-12-15
 # 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 # ==============================================
@@ -17,7 +17,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="2.2.0"
+SCRIPT_VERSION="2.3.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
@@ -34,7 +34,7 @@ install_self() {
     # 检查是否已安装
     if [[ -f "$INSTALL_PATH" ]]; then
         echo -e "${GREEN}✓ 工具箱已安装，请使用命令: ${WHITE}gotool${NC}"
-        return
+        return 0
     fi
     
     echo -e "${YELLOW}▶ 正在安装工具箱到系统...${NC}"
@@ -51,6 +51,7 @@ install_self() {
     echo -e "${GREEN}请使用命令 ${WHITE}$SCRIPT_NAME${GREEN} 运行工具箱${NC}"
     echo -e "${GREEN}快捷命令: ${WHITE}gotool${NC}"
     echo -e "${YELLOW}════════════════════════════════════════════${NC}"
+    return 0
 }
 
 # 检查更新
@@ -718,7 +719,7 @@ manage_client() {
                 echo -e "${YELLOW}▶ 正在卸载服务...${NC}"
                 sudo "$TARGET_DIR/$BINARY_NAME" uninstall 2>/dev/null
                 
-                echo -e "${YELLOW}▶ 删除文件...${NC}"
+                echo -极e "${YELLOW}▶ 删除文件...${NC}"
                 sudo rm -f "$TARGET_DIR/$BINARY_NAME"
                 
                 echo -e "${GREEN}✓ 服务已卸载${NC}"
@@ -735,30 +736,10 @@ manage_client() {
 
 # 主菜单
 main_menu() {
-    # 首次运行检查
-    if [[ ! -f "$INSTALL_PATH" ]]; then
-        clear
-        echo -e "$TOOLBOX_BANNER"
-        echo -e "${GREEN}首次使用，需安装工具箱到系统${NC}"
-        echo -e "${YELLOW}安装后可通过命令 ${WHITE}gotool${YELLOW} 快速启动${NC}"
-        echo ""
-        
-        install_self
-        
-        # 安装成功后启动
-        if [[ -f "$INSTALL_PATH" ]]; then
-            echo -e "${GREEN}✓ 安装完成，正在启动工具箱...${NC}"
-            sleep 1
-            $INSTALL_PATH
-            exit 0
-        else
-            echo -e "${RED}✗ 工具箱安装失败，请手动重试${NC}"
-            exit 1
-        fi
+    # 检查更新（只在交互模式下）
+    if [[ -t 0 ]]; then
+        check_update
     fi
-
-    # 检查更新
-    check_update
 
     while true; do
         clear
@@ -789,26 +770,20 @@ main_menu() {
     done
 }
 
+# ==============================================
 # 启动逻辑
-if [[ "$0" == "bash" ]]; then
-    # 通过管道运行的情况 (curl | bash)
-    if [[ ! -f "$INSTALL_PATH" ]]; then
-        install_self
-        
-        # 安装成功后启动
-        if [[ -f "$INSTALL_PATH" ]]; then
-            echo -e "${GREEN}✓ 安装完成，请使用命令: ${WHITE}gotool${NC}"
-            exit 0
-        else
-            echo -e "${RED}✗ 工具箱安装失败，请手动重试${NC}"
-            exit 1
-        fi
-    else
-        # 已经安装则进入主菜单
-        main_menu
-    fi
-else
-    # 其他情况（直接运行脚本或通过gotool命令）
+# ==============================================
+
+# 判断是否为非交互模式（管道安装）
+if [[ ! -t 0 ]]; then
+    # 非交互模式：只执行安装
+    install_self
+    exit $?
+fi
+
+# 交互模式：
+if [[ "$0" =~ gotool$ ]] || [[ "$(basename "$0")" == "gotool" ]]; then
+    # 通过gotool命令启动
     if [[ -f "$INSTALL_PATH" ]]; then
         main_menu
     else
@@ -816,5 +791,24 @@ else
         echo -e "请使用以下命令安装:"
         echo -e "curl -sSL ${REMOTE_SCRIPT_URL} | bash"
         exit 1
+    fi
+else
+    # 直接运行安装脚本
+    if [[ -f "$INSTALL_PATH" ]]; then
+        echo -e "${GREEN}✓ 工具箱已安装，请使用命令: ${WHITE}gotool${NC}"
+    else
+        clear
+        echo -e "$TOOLBOX_BANNER"
+        echo -e "${GREEN}首次使用，需安装工具箱到系统${NC}"
+        echo -e "${YELLOW}安装后可通过命令 ${WHITE}gotool${YELLOW} 快速启动${NC}"
+        echo ""
+        
+        install_self
+        
+        if [[ -f "$INSTALL_PATH" ]]; then
+            echo -e "${GREEN}✓ 安装完成，请使用命令 ${WHITE}gotool${GREEN} 启动工具箱${NC}"
+        else
+            echo -e "${RED}✗ 安装失败，请检查错误信息${NC}"
+        fi
     fi
 fi
