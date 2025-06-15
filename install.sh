@@ -3,7 +3,7 @@
 # ==============================================
 # GOSTC 全能服务管理工具箱 v2.1
 # 修复更新：2023-12-15
-# 远程更新：https://gh-proxy.com/raw.githubusercontent.com/dxiaom/gotool/main/install.sh
+# 远程更新：https://ghproxy.1888866.xyz/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh
 # ==============================================
 
 # 定义颜色代码
@@ -20,7 +20,7 @@ NC='\033[0m' # 重置颜色
 SCRIPT_VERSION="2.1.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
-REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+REMOTE_SCRIPT_URL="https://ghproxy.1888866.xyz/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
 TOOLBOX_BANNER="${PURPLE}
 ╔══════════════════════════════════════════════════╗
 ║               ${WHITE}GOSTC 服务管理工具箱 ${PURPLE}v${SCRIPT_VERSION}          ║
