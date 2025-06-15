@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ==============================================
-# GOSTC 全能服务管理工具箱 v2.1
+# GOSTC 全能服务管理工具箱 v2.2
 # 修复更新：2023-12-15
-# 远程更新：https://ghproxy.1888866.xyz/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh
+# 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 # ==============================================
 
 # 定义颜色代码
@@ -17,10 +17,10 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="2.1.0"
+SCRIPT_VERSION="2.2.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
-REMOTE_SCRIPT_URL="https://ghproxy.1888866.xyz/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
+REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 TOOLBOX_BANNER="${PURPLE}
 ╔══════════════════════════════════════════════════╗
 ║               ${WHITE}GOSTC 服务管理工具箱 ${PURPLE}v${SCRIPT_VERSION}          ║
@@ -40,7 +40,7 @@ install_self() {
     echo -e "${YELLOW}▶ 正在安装工具箱到系统...${NC}"
     echo -e "${CYAN}下载地址: ${WHITE}$REMOTE_SCRIPT_URL${NC}"
     
-    if ! sudo curl -# -fL "$REMOTE_SCRIPT_URL" -o "$INSTALL_PATH"; then
+    if ! sudo curl -sSfL "$REMOTE_SCRIPT_URL" -o "$INSTALL_PATH"; then
         echo -e "${RED}✗ 工具箱安装失败! 请检查网络连接${NC}"
         return 1
     fi
@@ -72,7 +72,7 @@ check_update() {
         if [[ ! "$update_choice" =~ ^[Nn]$ ]]; then
             echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
             
-            if ! sudo curl -# -fL "$REMOTE_SCRIPT_URL" -o "$0"; then
+            if ! sudo curl -sSfL "$REMOTE_SCRIPT_URL" -o "$0"; then
                 echo -e "${RED}✗ 更新失败! 请重试或手动下载${NC}"
                 return
             fi
@@ -744,7 +744,17 @@ main_menu() {
         echo ""
         
         install_self
-        return
+        
+        # 安装成功后启动
+        if [[ -f "$INSTALL_PATH" ]]; then
+            echo -e "${GREEN}✓ 安装完成，正在启动工具箱...${NC}"
+            sleep 1
+            $INSTALL_PATH
+            exit 0
+        else
+            echo -e "${RED}✗ 工具箱安装失败，请手动重试${NC}"
+            exit 1
+        fi
     fi
 
     # 检查更新
@@ -780,17 +790,25 @@ main_menu() {
 }
 
 # 启动逻辑
-if [[ "$0" != "$INSTALL_PATH" && "$0" != "bash" ]]; then
-    # 直接运行脚本时的处理
+if [[ "$0" == "bash" ]]; then
+    # 通过管道运行的情况 (curl | bash)
     if [[ ! -f "$INSTALL_PATH" ]]; then
-        # 首次安装
         install_self
+        
+        # 安装成功后启动
+        if [[ -f "$INSTALL_PATH" ]]; then
+            echo -e "${GREEN}✓ 安装完成，请使用命令: ${WHITE}gotool${NC}"
+            exit 0
+        else
+            echo -e "${RED}✗ 工具箱安装失败，请手动重试${NC}"
+            exit 1
+        fi
     else
         # 已经安装则进入主菜单
         main_menu
     fi
 else
-    # 通过gotool命令调用
+    # 其他情况（直接运行脚本或通过gotool命令）
     if [[ -f "$INSTALL_PATH" ]]; then
         main_menu
     else
