@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.5
+# 版本: v2.6
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
 # v2.1 - 修复管道安装问题，优化架构检测
@@ -9,6 +9,7 @@
 # v2.3 - 修复更新日志显示问题，优化更新机制
 # v2.4 - 移除边框效果，简化界面设计
 # v2.5 - 修复版本号提取问题，优化更新日志显示
+# v2.6 - 修复返回主菜单时重复检查更新的问题
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -23,7 +24,7 @@ NC='\033[0m' # 重置颜色
 # 配置参数
 TOOL_NAME="gotool"
 TOOL_PATH="/usr/local/bin/$TOOL_NAME"
-SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 
 # 服务端配置
 SERVER_TARGET_DIR="/usr/local/gostc-admin"
@@ -35,6 +36,9 @@ SERVER_CONFIG="$SERVER_TARGET_DIR/config.yml"
 CLIENT_TARGET_DIR="/usr/local/bin"
 CLIENT_BINARY="gostc"
 CLIENT_SERVICE="gostc"
+
+# 标记是否已检查更新
+UPDATE_CHECKED=false
 
 # 安装工具箱
 install_toolbox() {
@@ -70,7 +74,7 @@ show_title() {
     echo -e "${PURPLE}"
     echo "================================"
     echo -e "  ${WHITE}GOSTC 服务管理工具箱${PURPLE}"
-    echo -e "  版本: ${YELLOW}v2.5${PURPLE}"
+    echo -e "  版本: ${YELLOW}v2.6${PURPLE}"
     echo "================================"
     echo -e "${NC}"
 }
@@ -346,7 +350,7 @@ install_server() {
     fi
 
     read -n 1 -s -r -p "按任意键返回主菜单..."
-    main_menu
+    server_menu
 }
 
 # 服务端管理菜单
@@ -614,7 +618,7 @@ install_client() {
     echo -e "${NC}"
 
     read -n 1 -s -r -p "按任意键返回主菜单..."
-    main_menu
+    client_menu
 }
 
 # 节点/客户端管理菜单
@@ -693,6 +697,11 @@ client_menu() {
 
 # 检查更新
 check_update() {
+    # 如果已经检查过更新，直接返回
+    if [ "$UPDATE_CHECKED" = true ]; then
+        return
+    fi
+    
     echo -e "${BLUE}▶ 正在检查更新...${NC}"
     remote_content=$(curl -s $SCRIPT_URL)
     
@@ -702,6 +711,7 @@ check_update() {
     
     if [ -z "$remote_version" ]; then
         echo -e "${YELLOW}▶ 无法获取远程版本信息，跳过更新检查${NC}"
+        UPDATE_CHECKED=true
         sleep 1
         return
     fi
@@ -725,12 +735,14 @@ check_update() {
             exit 0
         else
             echo -e "${YELLOW}▶ 已取消更新，继续使用当前版本${NC}"
-            sleep 1
         fi
     else
         echo -e "${GREEN}✓ 当前已是最新版本 (${local_version})${NC}"
-        sleep 1
     fi
+    
+    # 标记已检查更新
+    UPDATE_CHECKED=true
+    sleep 1
 }
 
 # 主菜单
@@ -740,7 +752,7 @@ main_menu() {
         install_toolbox
     fi
 
-    # 检查更新
+    # 检查更新（只会在第一次进入主菜单时检查）
     check_update
 
     while true; do
@@ -763,7 +775,10 @@ main_menu() {
         case $choice in
             1) server_menu ;;
             2) client_menu ;;
-            3) check_update ;;
+            3) 
+                # 手动检查更新
+                check_update
+                ;;
             0)
                 echo -e "${BLUE}▶ 感谢使用 GOSTC 服务管理工具箱${NC}"
                 exit 0
