@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.1
+# 版本: v2.2
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
-# v2.1 - 修复管道安装问题，优化架构检测和菜单逻辑
+# v2.1 - 修复管道安装问题，优化架构检测
+# v2.2 - 修复显示对齐问题，优化菜单布局
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -66,7 +67,7 @@ show_title() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════╗"
     echo -e "║              ${WHITE}GOSTC 服务管理工具箱${PURPLE}             ║"
-    echo -e "║               ${YELLOW}版本: v2.1${PURPLE}                   ║"
+    echo -e "║               ${YELLOW}版本: v2.2${PURPLE}                   ║"
     echo "╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -352,14 +353,14 @@ server_menu() {
         echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
         echo -e "║                ${WHITE}服务端管理${PURPLE}                  ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务状态: $(get_service_status $SERVER_SERVICE)${PURPLE}                  ║"
+        echo -e "║  服务状态: $(get_service_status $SERVER_SERVICE)                  ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}安装/更新服务端${PURPLE}                          ║"
-        echo -e "║  ${CYAN}2. ${WHITE}启动服务端${PURPLE}                              ║"
-        echo -e "║  ${CYAN}3. ${WHITE}停止服务端${PURPLE}                              ║"
-        echo -e "║  ${CYAN}4. ${WHITE}重启服务端${PURPLE}                              ║"
-        echo -e "║  ${CYAN}5. ${WHITE}卸载服务端${PURPLE}                              ║"
-        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单${PURPLE}                              ║"
+        echo -e "║  ${CYAN}1. ${WHITE}安装/更新服务端                          ║"
+        echo -e "║  ${CYAN}2. ${WHITE}启动服务端                              ║"
+        echo -e "║  ${CYAN}3. ${WHITE}停止服务端                              ║"
+        echo -e "║  ${CYAN}4. ${WHITE}重启服务端                              ║"
+        echo -e "║  ${CYAN}5. ${WHITE}卸载服务端                              ║"
+        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单                              ║"
         echo -e "╚══════════════════════════════════════════════════╝${NC}"
         echo ""
 
@@ -598,12 +599,12 @@ install_client() {
     echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
     echo -e "║               ${WHITE}${COMPONENT_TYPE}安装成功${PURPLE}               ║"
     echo -e "╠══════════════════════════════════════════════════╣"
-    echo -e "║  组件类型: ${WHITE}${COMPONENT_TYPE}${PURPLE}                          ║"
-    echo -e "║  安装目录: ${WHITE}$CLIENT_TARGET_DIR${PURPLE}                     ║"
-    echo -e "║  服务器地址: ${WHITE}$server_addr${PURPLE}                    ║"
-    echo -e "║  TLS: ${WHITE}$use_tls${PURPLE}                              ║"
+    echo -e "║  组件类型: ${WHITE}${COMPONENT_TYPE}                          ║"
+    echo -e "║  安装目录: ${WHITE}$CLIENT_TARGET_DIR                     ║"
+    echo -e "║  服务器地址: ${WHITE}$server_addr                    ║"
+    echo -e "║  TLS: ${WHITE}$use_tls                              ║"
     if [ -n "$proxy_base_url" ]; then
-        echo -e "║  网关地址: ${WHITE}$proxy_base_url${PURPLE}               ║"
+        echo -e "║  网关地址: ${WHITE}$proxy_base_url               ║"
     fi
     echo -e "╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -619,14 +620,14 @@ client_menu() {
         echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
         echo -e "║             ${WHITE}节点/客户端管理${PURPLE}               ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务状态: $(get_service_status $CLIENT_SERVICE)${PURPLE}                  ║"
+        echo -e "║  服务状态: $(get_service_status $CLIENT_SERVICE)                  ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}安装/配置节点/客户端${PURPLE}                  ║"
-        echo -e "║  ${CYAN}2. ${WHITE}启动节点/客户端${PURPLE}                      ║"
-        echo -e "║  ${CYAN}3. ${WHITE}停止节点/客户端${PURPLE}                      ║"
-        echo -e "║  ${CYAN}4. ${WHITE}重启节点/客户端${PURPLE}                      ║"
-        echo -e "║  ${CYAN}5. ${WHITE}卸载节点/客户端${PURPLE}                      ║"
-        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单${PURPLE}                          ║"
+        echo -e "║  ${CYAN}1. ${WHITE}安装/配置节点/客户端                  ║"
+        echo -e "║  ${CYAN}2. ${WHITE}启动节点/客户端                      ║"
+        echo -e "║  ${CYAN}3. ${WHITE}停止节点/客户端                      ║"
+        echo -e "║  ${CYAN}4. ${WHITE}重启节点/客户端                      ║"
+        echo -e "║  ${CYAN}5. ${WHITE}卸载节点/客户端                      ║"
+        echo -e "║  ${CYAN}0. ${WHITE}返回主菜单                          ║"
         echo -e "╚══════════════════════════════════════════════════╝${NC}"
         echo ""
 
@@ -730,13 +731,13 @@ main_menu() {
         echo -e "${PURPLE}╔══════════════════════════════════════════════════╗"
         echo -e "║                   ${WHITE}主菜单${PURPLE}                     ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  服务端状态: $(get_service_status $SERVER_SERVICE)${PURPLE}                ║"
-        echo -e "║  节点状态:   $(get_service_status $CLIENT_SERVICE)${PURPLE}                ║"
+        echo -e "║  服务端状态: $(get_service_status $SERVER_SERVICE)                ║"
+        echo -e "║  节点状态:   $(get_service_status $CLIENT_SERVICE)                ║"
         echo -e "╠══════════════════════════════════════════════════╣"
-        echo -e "║  ${CYAN}1. ${WHITE}服务端管理${PURPLE}                           ║"
-        echo -e "║  ${CYAN}2. ${WHITE}节点/客户端管理${PURPLE}                      ║"
-        echo -e "║  ${CYAN}3. ${WHITE}检查更新${PURPLE}                             ║"
-        echo -e "║  ${CYAN}0. ${WHITE}退出${PURPLE}                                ║"
+        echo -e "║  ${CYAN}1. ${WHITE}服务端管理                           ║"
+        echo -e "║  ${CYAN}2. ${WHITE}节点/客户端管理                      ║"
+        echo -e "║  ${CYAN}3. ${WHITE}检查更新                             ║"
+        echo -e "║  ${CYAN}0. ${WHITE}退出                                ║"
         echo -e "╚══════════════════════════════════════════════════╝${NC}"
         echo ""
 
