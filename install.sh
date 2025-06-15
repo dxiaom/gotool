@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本号: 1.0.0
+# 版本号: 1.3.1
 # 更新日期: 2025-06-15
 # 远程更新地址: https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 
@@ -10,6 +10,7 @@
 # 1.1.0 - 添加服务管理功能(启动/停止/重启/卸载)
 # 1.2.0 - 添加脚本自动更新功能
 # 1.3.0 - 优化架构检测和系统信息获取
+# 1.3.1 - 修复管道安装问题，优化错误处理
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -22,7 +23,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本版本
-VERSION="1.3.0"
+VERSION="1.3.1"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 
 # 安装目录
@@ -42,8 +43,21 @@ CLIENT_SERVICE="gostc"
 install_script() {
     if [ ! -f "${INSTALL_DIR}/${SCRIPT_NAME}" ]; then
         echo -e "${YELLOW}▶ 正在安装工具箱到系统路径...${NC}"
-        sudo cp "$0" "${INSTALL_DIR}/${SCRIPT_NAME}"
+        
+        # 创建临时文件
+        TMP_SCRIPT="/tmp/${SCRIPT_NAME}.tmp"
+        
+        # 下载脚本到临时文件
+        curl -sSfL -o "$TMP_SCRIPT" "$REMOTE_SCRIPT_URL" || {
+            echo -e "${RED}✗ 脚本下载失败! 请检查网络连接${NC}"
+            exit 1
+        }
+        
+        # 安装脚本到系统路径
+        sudo cp "$TMP_SCRIPT" "${INSTALL_DIR}/${SCRIPT_NAME}"
         sudo chmod +x "${INSTALL_DIR}/${SCRIPT_NAME}"
+        rm -f "$TMP_SCRIPT"
+        
         echo -e "${GREEN}✓ 工具箱安装完成! 您现在可以使用 '${SCRIPT_NAME}' 命令运行本工具${NC}"
         echo ""
     fi
@@ -54,6 +68,11 @@ check_update() {
     echo -e "${YELLOW}▶ 检查脚本更新...${NC}"
     remote_version=$(curl -sSfL "$REMOTE_SCRIPT_URL" | grep -m1 "VERSION=\"" | cut -d'"' -f2)
     
+    if [[ -z "$remote_version" ]]; then
+        echo -e "${YELLOW}✗ 无法获取远程版本信息${NC}"
+        return
+    fi
+    
     if [[ "$remote_version" != "$VERSION" ]]; then
         echo -e "${YELLOW}发现新版本: $remote_version (当前版本: $VERSION)${NC}"
         read -p "是否更新到最新版本? [y/N] " -n 1 -r
@@ -61,8 +80,11 @@ check_update() {
         
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${YELLOW}▶ 正在更新脚本...${NC}"
-            sudo curl -sSfL "$REMOTE_SCRIPT_URL" -o "${INSTALL_DIR}/${SCRIPT_NAME}"
+            TMP_SCRIPT="/tmp/${SCRIPT_NAME}.tmp"
+            curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TMP_SCRIPT"
+            sudo cp "$TMP_SCRIPT" "${INSTALL_DIR}/${SCRIPT_NAME}"
             sudo chmod +x "${INSTALL_DIR}/${SCRIPT_NAME}"
+            rm -f "$TMP_SCRIPT"
             echo -e "${GREEN}✓ 脚本已更新到版本 $remote_version${NC}"
             echo -e "${GREEN}请重新运行 '${SCRIPT_NAME}' 命令${NC}"
             exit 0
