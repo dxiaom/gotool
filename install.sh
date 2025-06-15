@@ -2,7 +2,7 @@
 
 # ==============================================
 # GOSTC 服务管理工具箱
-# 版本: 1.0.0
+# 版本: 1.0.1
 # 更新日期: 2025-06-15
 # 作者: DeepSeek
 # ==============================================
@@ -18,7 +18,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 SCRIPT_NAME="gotool"
 SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 UPDATE_LOG_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/CHANGELOG.md"
@@ -68,8 +68,8 @@ check_update() {
                 return 1
             }
             
-            sudo mv /tmp/${SCRIPT_NAME} $(which ${SCRIPT_NAME})
-            sudo chmod +x $(which ${SCRIPT_NAME})
+            sudo mv /tmp/${SCRIPT_NAME} $(which ${SCRIPT_NAME}) >/dev/null 2>&1
+            sudo chmod +x $(which ${SCRIPT_NAME}) >/dev/null 2>&1
             echo -e "${GREEN}✓ 更新成功! 请重新运行命令: ${SCRIPT_NAME}${NC}"
             exit 0
         fi
@@ -82,9 +82,10 @@ check_update() {
 install_self() {
     if [ ! -f "/usr/local/bin/${SCRIPT_NAME}" ]; then
         echo -e "${YELLOW}▶ 安装工具箱为系统命令...${NC}"
-        sudo cp "$0" "/usr/local/bin/${SCRIPT_NAME}"
-        sudo chmod +x "/usr/local/bin/${SCRIPT_NAME}"
+        sudo cp "$0" "/usr/local/bin/${SCRIPT_NAME}" >/dev/null 2>&1
+        sudo chmod +x "/usr/local/bin/${SCRIPT_NAME}" >/dev/null 2>&1
         echo -e "${GREEN}✓ 安装成功! 您现在可以使用命令: ${SCRIPT_NAME}${NC}"
+        echo -e "${YELLOW}注意: 此命令已添加到系统路径，可在任何目录直接执行${NC}"
     fi
 }
 
@@ -270,10 +271,12 @@ server_install() {
     sudo mkdir -p "$SERVER_DIR" >/dev/null 2>&1
 
     # 下载文件
+    echo -e "${YELLOW}▶ 正在下载文件，请稍候...${NC}"
     curl -# -fL -o "$FILE_NAME" "$DOWNLOAD_URL" || {
         echo ""
         echo -e "${RED}✗ 错误: 文件下载失败!${NC}"
         echo -e "${RED}URL: $DOWNLOAD_URL${NC}"
+        echo -e "${YELLOW}请检查网络连接或手动下载文件${NC}"
         return 1
     }
 
@@ -904,7 +907,7 @@ main_menu() {
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "${RED}错误: 此脚本需要root权限!${NC}"
     echo -e "请使用以下命令重新运行:"
-    echo -e "  sudo $0"
+    echo -e "  sudo bash $0"
     exit 1
 fi
 
