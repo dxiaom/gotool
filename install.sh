@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ==============================================
-# GOSTC 全能服务管理工具箱 v2.0
-# 优化更新：2023-12-15
-# 远程更新：https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh
+# GOSTC 全能服务管理工具箱 v2.1
+# 修复更新：2023-12-15
+# 远程更新：https://gh-proxy.com/raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 # ==============================================
 
 # 定义颜色代码
@@ -17,10 +17,10 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本信息
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.1.0"
 SCRIPT_NAME="gotool"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
-REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh"
+REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 TOOLBOX_BANNER="${PURPLE}
 ╔══════════════════════════════════════════════════╗
 ║               ${WHITE}GOSTC 服务管理工具箱 ${PURPLE}v${SCRIPT_VERSION}          ║
@@ -31,12 +31,18 @@ ${NC}"
 
 # 安装自身到系统
 install_self() {
+    # 检查是否已安装
+    if [[ -f "$INSTALL_PATH" ]]; then
+        echo -e "${GREEN}✓ 工具箱已安装，请使用命令: ${WHITE}gotool${NC}"
+        return
+    fi
+    
     echo -e "${YELLOW}▶ 正在安装工具箱到系统...${NC}"
     echo -e "${CYAN}下载地址: ${WHITE}$REMOTE_SCRIPT_URL${NC}"
     
     if ! sudo curl -# -fL "$REMOTE_SCRIPT_URL" -o "$INSTALL_PATH"; then
         echo -e "${RED}✗ 工具箱安装失败! 请检查网络连接${NC}"
-        exit 1
+        return 1
     fi
     
     sudo chmod +x "$INSTALL_PATH"
@@ -45,7 +51,6 @@ install_self() {
     echo -e "${GREEN}请使用命令 ${WHITE}$SCRIPT_NAME${GREEN} 运行工具箱${NC}"
     echo -e "${GREEN}快捷命令: ${WHITE}gotool${NC}"
     echo -e "${YELLOW}════════════════════════════════════════════${NC}"
-    exit 0
 }
 
 # 检查更新
@@ -731,25 +736,19 @@ manage_client() {
 # 主菜单
 main_menu() {
     # 首次运行检查
-    if [[ ! -f "$INSTALL_PATH" && "$0" != "$INSTALL_PATH" ]]; then
+    if [[ ! -f "$INSTALL_PATH" ]]; then
         clear
         echo -e "$TOOLBOX_BANNER"
         echo -e "${GREEN}首次使用，需安装工具箱到系统${NC}"
         echo -e "${YELLOW}安装后可通过命令 ${WHITE}gotool${YELLOW} 快速启动${NC}"
         echo ""
         
-        if [[ -t 0 ]]; then
-            read -p "是否安装? (y/n, 默认y): " choice
-            if [[ ! "$choice" =~ ^[Nn]$ ]]; then
-                install_self
-            fi
-        fi
+        install_self
+        return
     fi
 
     # 检查更新
-    if [[ -t 0 ]]; then
-        check_update
-    fi
+    check_update
 
     while true; do
         clear
@@ -780,9 +779,24 @@ main_menu() {
     done
 }
 
-# 启动主菜单
-[[ $- == *i* ]] && main_menu || {
-    # 非交互模式直接安装
-    echo -e "${YELLOW}▶ 非交互模式安装工具箱...${NC}"
-    install_self
-}
+# 启动逻辑
+if [[ "$0" != "$INSTALL_PATH" && "$0" != "bash" ]]; then
+    # 直接运行脚本时的处理
+    if [[ ! -f "$INSTALL_PATH" ]]; then
+        # 首次安装
+        install_self
+    else
+        # 已经安装则进入主菜单
+        main_menu
+    fi
+else
+    # 通过gotool命令调用
+    if [[ -f "$INSTALL_PATH" ]]; then
+        main_menu
+    else
+        echo -e "${RED}错误: 工具箱未安装!${NC}"
+        echo -e "请使用以下命令安装:"
+        echo -e "curl -sSL ${REMOTE_SCRIPT_URL} | bash"
+        exit 1
+    fi
+fi
