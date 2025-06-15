@@ -1,16 +1,17 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本号: 1.3.1
+# 版本号: 1.3.2
 # 更新日期: 2025-06-15
 # 远程更新地址: https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh
 
 # 更新日志:
 # 1.0.0 - 初始版本发布
-# 1.1.0 - 添加服务管理功能(启动/停止/重启/卸载)
+# 1.1.0 - 添加服务管理功能
 # 1.2.0 - 添加脚本自动更新功能
 # 1.3.0 - 优化架构检测和系统信息获取
-# 1.3.1 - 修复管道安装问题，优化错误处理
+# 1.3.1 - 修复管道安装问题
+# 1.3.2 - 优化管道模式下的行为，修复自动输入问题
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -23,7 +24,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 脚本版本
-VERSION="1.3.1"
+VERSION="1.3.2"
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
 
 # 安装目录
@@ -38,6 +39,11 @@ SERVER_SERVICE="gostc-admin"
 CLIENT_DIR="/usr/local/bin"
 CLIENT_BINARY="gostc"
 CLIENT_SERVICE="gostc"
+
+# 检查是否在管道模式下运行
+is_piped() {
+    [ ! -t 0 ] && [ ! -t 1 ]
+}
 
 # 检查并安装脚本到系统路径
 install_script() {
@@ -75,19 +81,32 @@ check_update() {
     
     if [[ "$remote_version" != "$VERSION" ]]; then
         echo -e "${YELLOW}发现新版本: $remote_version (当前版本: $VERSION)${NC}"
-        read -p "是否更新到最新版本? [y/N] " -n 1 -r
-        echo ""
         
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}▶ 正在更新脚本...${NC}"
+        # 在管道模式下自动更新
+        if is_piped; then
+            echo -e "${YELLOW}▶ 正在自动更新脚本...${NC}"
             TMP_SCRIPT="/tmp/${SCRIPT_NAME}.tmp"
             curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TMP_SCRIPT"
             sudo cp "$TMP_SCRIPT" "${INSTALL_DIR}/${SCRIPT_NAME}"
             sudo chmod +x "${INSTALL_DIR}/${SCRIPT_NAME}"
             rm -f "$TMP_SCRIPT"
             echo -e "${GREEN}✓ 脚本已更新到版本 $remote_version${NC}"
-            echo -e "${GREEN}请重新运行 '${SCRIPT_NAME}' 命令${NC}"
             exit 0
+        else
+            read -p "是否更新到最新版本? [y/N] " -n 1 -r
+            echo ""
+            
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${YELLOW}▶ 正在更新脚本...${NC}"
+                TMP_SCRIPT="/tmp/${SCRIPT_NAME}.tmp"
+                curl -sSfL "$REMOTE_SCRIPT_URL" -o "$TMP_SCRIPT"
+                sudo cp "$TMP_SCRIPT" "${INSTALL_DIR}/${SCRIPT_NAME}"
+                sudo chmod +x "${INSTALL_DIR}/${SCRIPT_NAME}"
+                rm -f "$TMP_SCRIPT"
+                echo -e "${GREEN}✓ 脚本已更新到版本 $remote_version${NC}"
+                echo -e "${GREEN}请重新运行 '${SCRIPT_NAME}' 命令${NC}"
+                exit 0
+            fi
         fi
     else
         echo -e "${GREEN}✓ 已是最新版本${NC}"
@@ -749,6 +768,12 @@ press_enter_to_continue() {
 
 # 主菜单
 main_menu() {
+    # 在管道模式下不进入主菜单
+    if is_piped; then
+        echo -e "${GREEN}✓ 工具箱安装完成! 请使用 '${SCRIPT_NAME}' 命令运行本工具${NC}"
+        exit 0
+    fi
+
     while true; do
         print_title
         echo -e "${BLUE}▶ 主菜单${NC}"
