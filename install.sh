@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.4
+# 版本: v2.5
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
 # v2.1 - 修复管道安装问题，优化架构检测
 # v2.2 - 修复显示对齐问题，优化菜单布局
 # v2.3 - 修复更新日志显示问题，优化更新机制
 # v2.4 - 移除边框效果，简化界面设计
+# v2.5 - 修复版本号提取问题，优化更新日志显示
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -69,7 +70,7 @@ show_title() {
     echo -e "${PURPLE}"
     echo "================================"
     echo -e "  ${WHITE}GOSTC 服务管理工具箱${PURPLE}"
-    echo -e "  版本: ${YELLOW}v2.4${PURPLE}"
+    echo -e "  版本: ${YELLOW}v2.5${PURPLE}"
     echo "================================"
     echo -e "${NC}"
 }
@@ -696,14 +697,20 @@ check_update() {
     remote_content=$(curl -s $SCRIPT_URL)
     
     # 提取远程版本号
-    remote_version=$(echo "$remote_content" | grep -m1 "版本: v" | awk -F'v' '{print $2}')
-    local_version=$(grep -m1 "版本: v" "$0" | awk -F'v' '{print $2}')
+    remote_version=$(echo "$remote_content" | grep -m1 "^# 版本: v" | awk '{print $3}')
+    local_version=$(grep -m1 "^# 版本: v" "$0" | awk '{print $3}')
+    
+    if [ -z "$remote_version" ]; then
+        echo -e "${YELLOW}▶ 无法获取远程版本信息，跳过更新检查${NC}"
+        sleep 1
+        return
+    fi
     
     if [ "$remote_version" != "$local_version" ]; then
-        echo -e "${GREEN}发现新版本: v$remote_version${NC}"
+        echo -e "${GREEN}发现新版本: ${remote_version}${NC}"
         echo -e "${YELLOW}更新日志:${NC}"
         
-        # 仅显示更新日志部分
+        # 提取更新日志
         echo "$remote_content" | awk '/^# 更新日志:/{flag=1; next} /^# [^ ]/{flag=0} flag' | sed 's/^# //'
         
         echo ""
@@ -713,7 +720,7 @@ check_update() {
             echo -e "${BLUE}▶ 正在更新工具箱...${NC}"
             sudo curl -s -o "$TOOL_PATH" "$SCRIPT_URL"
             sudo chmod +x "$TOOL_PATH"
-            echo -e "${GREEN}✓ 工具箱已更新到 v$remote_version${NC}"
+            echo -e "${GREEN}✓ 工具箱已更新到 ${remote_version}${NC}"
             echo -e "${BLUE}请重新运行命令: ${WHITE}$TOOL_NAME${NC}"
             exit 0
         else
@@ -721,7 +728,7 @@ check_update() {
             sleep 1
         fi
     else
-        echo -e "${GREEN}✓ 当前已是最新版本 (v$local_version)${NC}"
+        echo -e "${GREEN}✓ 当前已是最新版本 (${local_version})${NC}"
         sleep 1
     fi
 }
