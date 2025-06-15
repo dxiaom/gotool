@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GOSTC 工具箱脚本
-# 版本: 1.2.0
+# 版本: 1.2.1
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -16,21 +16,48 @@ NC='\033[0m' # 重置颜色
 # 工具箱安装路径
 TOOLBOX_PATH="/usr/local/bin/gotool"
 # 工具箱版本
-TOOLBOX_VERSION="1.2.0"
+TOOLBOX_VERSION="1.2.1"
 # 更新日志
 CHANGELOG="
-版本 1.2.0 更新日志:
-- 添加了WS/WSS服务器验证功能
-- 优化了系统信息获取函数
-- 合并了架构检测代码
-- 添加了工具箱自动更新功能
-- 移除了边框效果，界面更简洁
+版本 1.2.1 更新日志:
+- 修复管道安装时直接安装服务端的问题
+- 优化WS/WSS服务器验证功能
+- 改进服务管理界面
+- 添加服务状态实时显示
 "
 
 # 安装模式判断
 if [ ! -t 0 ]; then
-    # 非交互模式（管道安装）
-    INSTALL_MODE=true
+    # 非交互模式（管道安装）- 只安装工具箱
+    echo -e "${GREEN}▶ 正在安装GOSTC工具箱...${NC}"
+    
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
+    TMP_SCRIPT="$TMP_DIR/gotool_install.sh"
+    
+    # 下载最新脚本
+    echo -e "${BLUE}▷ 下载工具箱脚本...${NC}"
+    curl -sSL -o "$TMP_SCRIPT" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ 下载工具箱脚本失败${NC}"
+        rm -rf "$TMP_DIR"
+        exit 1
+    fi
+    
+    # 安装工具箱
+    sudo install -m 755 "$TMP_SCRIPT" "$TOOLBOX_PATH"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ 工具箱安装成功!${NC}"
+        echo -e "${YELLOW}请使用 'gotool' 命令运行工具箱${NC}"
+    else
+        echo -e "${RED}✗ 工具箱安装失败${NC}"
+    fi
+    
+    # 清理
+    rm -rf "$TMP_DIR"
+    exit 0
 fi
 
 # 函数: 获取系统信息
@@ -118,15 +145,33 @@ validate_server_ws() {
 # 函数: 安装工具箱
 install_toolbox() {
     echo -e "${GREEN}▶ 正在安装GOSTC工具箱...${NC}"
-    sudo curl -sSL -o "$TOOLBOX_PATH" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
-    sudo chmod +x "$TOOLBOX_PATH"
     
-    if [ -f "$TOOLBOX_PATH" ]; then
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
+    TMP_SCRIPT="$TMP_DIR/gotool_install.sh"
+    
+    # 下载最新脚本
+    echo -e "${BLUE}▷ 下载工具箱脚本...${NC}"
+    curl -sSL -o "$TMP_SCRIPT" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ 下载工具箱脚本失败${NC}"
+        rm -rf "$TMP_DIR"
+        return 1
+    fi
+    
+    # 安装工具箱
+    sudo install -m 755 "$TMP_SCRIPT" "$TOOLBOX_PATH"
+    
+    if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ 工具箱安装成功!${NC}"
         echo -e "${YELLOW}请使用 'gotool' 命令运行工具箱${NC}"
     else
         echo -e "${RED}✗ 工具箱安装失败${NC}"
     fi
+    
+    # 清理
+    rm -rf "$TMP_DIR"
 }
 
 # 函数: 更新工具箱
@@ -153,16 +198,33 @@ update_toolbox() {
     read -p "$(echo -e "${BLUE}是否要更新到最新版本? (y/n) [n]: ${NC}")" choice
     if [[ "$choice" =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
-        sudo curl -sSL -o "$TOOLBOX_PATH" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
-        sudo chmod +x "$TOOLBOX_PATH"
         
-        if [ -f "$TOOLBOX_PATH" ]; then
+        # 创建临时目录
+        TMP_DIR=$(mktemp -d)
+        TMP_SCRIPT="$TMP_DIR/gotool_install.sh"
+        
+        # 下载最新脚本
+        curl -sSL -o "$TMP_SCRIPT" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
+        
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ 下载最新工具箱失败${NC}"
+            rm -rf "$TMP_DIR"
+            return 1
+        fi
+        
+        # 安装更新
+        sudo install -m 755 "$TMP_SCRIPT" "$TOOLBOX_PATH"
+        
+        if [ $? -eq 0 ]; then
             echo -e "${GREEN}✓ 工具箱已成功更新到 $LATEST_VERSION${NC}"
             echo -e "${YELLOW}请重新运行工具箱查看更新${NC}"
+            rm -rf "$TMP_DIR"
             exit 0
         else
             echo -e "${RED}✗ 更新失败${NC}"
         fi
+        
+        rm -rf "$TMP_DIR"
     else
         echo -e "${BLUE}▶ 已取消更新${NC}"
     fi
@@ -331,11 +393,14 @@ install_server() {
 manage_server() {
     local SERVICE_NAME="gostc-admin"
     local TARGET_DIR="/usr/local/gostc-admin"
+    local BINARY_PATH="${TARGET_DIR}/server"
     
     while true; do
         # 显示服务状态
-        if [ -f "${TARGET_DIR}/server" ]; then
-            SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || echo "未安装")
+        echo -e "${BLUE}════════════════ 服务端管理 ════════════════${NC}"
+        
+        if [ -f "$BINARY_PATH" ]; then
+            SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || echo "未运行")
             echo -e "${BLUE}当前服务状态: ${WHITE}$SERVICE_STATUS${NC}"
         else
             echo -e "${RED}服务端未安装${NC}"
@@ -358,7 +423,7 @@ manage_server() {
                 install_server
                 ;;
             2)
-                if [ -f "${TARGET_DIR}/server" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在启动服务...${NC}"
                     sudo systemctl start "$SERVICE_NAME"
                     sleep 1
@@ -368,7 +433,7 @@ manage_server() {
                 fi
                 ;;
             3)
-                if [ -f "${TARGET_DIR}/server" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在停止服务...${NC}"
                     sudo systemctl stop "$SERVICE_NAME"
                     sleep 1
@@ -378,7 +443,7 @@ manage_server() {
                 fi
                 ;;
             4)
-                if [ -f "${TARGET_DIR}/server" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在重启服务...${NC}"
                     sudo systemctl restart "$SERVICE_NAME"
                     sleep 1
@@ -388,16 +453,14 @@ manage_server() {
                 fi
                 ;;
             5)
-                if [ -f "${TARGET_DIR}/server" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在卸载服务端...${NC}"
                     
                     # 停止服务
                     sudo systemctl stop "$SERVICE_NAME" 2>/dev/null
                     
                     # 卸载服务
-                    if [ -f "${TARGET_DIR}/server" ]; then
-                        sudo "${TARGET_DIR}/server" service uninstall
-                    fi
+                    sudo "$BINARY_PATH" service uninstall
                     
                     # 删除文件
                     sudo rm -rf "$TARGET_DIR"
@@ -429,6 +492,7 @@ install_node_client() {
     local TARGET_DIR="/usr/local/bin"
     local BINARY_NAME="gostc"
     local SERVICE_NAME="gostc"
+    local BINARY_PATH="${TARGET_DIR}/${BINARY_NAME}"
     
     echo -e "${BLUE}▶ 开始安装GOSTC $TYPE${NC}"
     
@@ -467,7 +531,7 @@ install_node_client() {
     # 解压文件
     echo -e "${BLUE}▶ 正在安装到: ${WHITE}${TARGET_DIR}${NC}"
 
-    sudo rm -f "$TARGET_DIR/$BINARY_NAME"  # 清理旧版本
+    sudo rm -f "$BINARY_PATH"  # 清理旧版本
     if [[ "$FILE_NAME" == *.zip ]]; then
         sudo unzip -qo "$FILE_NAME" -d "$TARGET_DIR"
     elif [[ "$FILE_NAME" == *.tar.gz ]]; then
@@ -478,9 +542,9 @@ install_node_client() {
     fi
 
     # 设置权限
-    if [ -f "$TARGET_DIR/$BINARY_NAME" ]; then
-        sudo chmod 755 "$TARGET_DIR/$BINARY_NAME"
-        echo -e "${GREEN}✓ 已安装二进制文件: ${TARGET_DIR}/${BINARY_NAME}${NC}"
+    if [ -f "$BINARY_PATH" ]; then
+        sudo chmod 755 "$BINARY_PATH"
+        echo -e "${GREEN}✓ 已安装二进制文件: ${BINARY_PATH}${NC}"
     else
         echo -e "${RED}错误: 解压后未找到二进制文件 $BINARY_NAME${NC}"
         return 1
@@ -528,7 +592,7 @@ install_node_client() {
     done
     
     # 构建安装命令
-    local install_cmd="sudo $TARGET_DIR/$BINARY_NAME install --tls=$use_tls -addr $server_addr"
+    local install_cmd="sudo $BINARY_PATH install --tls=$use_tls -addr $server_addr"
     
     if [ "$TYPE" == "节点" ]; then
         install_cmd="$install_cmd -s -key $key"
@@ -591,11 +655,14 @@ manage_node_client() {
     local TARGET_DIR="/usr/local/bin"
     local BINARY_NAME="gostc"
     local SERVICE_NAME="gostc"
+    local BINARY_PATH="${TARGET_DIR}/${BINARY_NAME}"
     
     while true; do
         # 显示服务状态
-        if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
-            SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || echo "未安装")
+        echo -e "${BLUE}════════════ 节点/客户端管理 ═════════════${NC}"
+        
+        if [ -f "$BINARY_PATH" ]; then
+            SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || echo "未运行")
             echo -e "${BLUE}当前服务状态: ${WHITE}$SERVICE_STATUS${NC}"
         else
             echo -e "${RED}节点/客户端未安装${NC}"
@@ -622,7 +689,7 @@ manage_node_client() {
                 install_node_client "客户端"
                 ;;
             3)
-                if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在启动服务...${NC}"
                     sudo systemctl start "$SERVICE_NAME"
                     sleep 1
@@ -632,7 +699,7 @@ manage_node_client() {
                 fi
                 ;;
             4)
-                if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在停止服务...${NC}"
                     sudo systemctl stop "$SERVICE_NAME"
                     sleep 1
@@ -642,7 +709,7 @@ manage_node_client() {
                 fi
                 ;;
             5)
-                if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在重启服务...${NC}"
                     sudo systemctl restart "$SERVICE_NAME"
                     sleep 1
@@ -652,19 +719,17 @@ manage_node_client() {
                 fi
                 ;;
             6)
-                if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
+                if [ -f "$BINARY_PATH" ]; then
                     echo -e "${YELLOW}▶ 正在卸载节点/客户端...${NC}"
                     
                     # 停止服务
                     sudo systemctl stop "$SERVICE_NAME" 2>/dev/null
                     
                     # 卸载服务
-                    if [ -f "${TARGET_DIR}/${BINARY_NAME}" ]; then
-                        sudo "${TARGET_DIR}/${BINARY_NAME}" uninstall
-                    fi
+                    sudo "$BINARY_PATH" uninstall
                     
                     # 删除文件
-                    sudo rm -f "${TARGET_DIR}/${BINARY_NAME}"
+                    sudo rm -f "$BINARY_PATH"
                     
                     # 禁用服务
                     sudo systemctl disable "$SERVICE_NAME" 2>/dev/null
@@ -692,11 +757,8 @@ main_menu() {
     # 首次运行安装工具箱
     if [ ! -f "$TOOLBOX_PATH" ]; then
         install_toolbox
-    fi
-    
-    # 非交互模式直接安装服务端
-    if [ "$INSTALL_MODE" = true ]; then
-        install_server
+        echo ""
+        echo -e "${YELLOW}工具箱安装完成! 请使用 'gotool' 命令运行工具箱${NC}"
         exit 0
     fi
     
