@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # GOSTC 服务管理工具箱
-# 版本: v2.2
+# 版本: v2.3
 # 更新日志:
 # v2.0 - 初始版本，支持服务端和节点的全生命周期管理
 # v2.1 - 修复管道安装问题，优化架构检测
 # v2.2 - 修复显示对齐问题，优化菜单布局
+# v2.3 - 修复更新日志显示问题，优化更新机制
 
 # 定义颜色代码
 PURPLE='\033[0;35m'
@@ -67,7 +68,7 @@ show_title() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════╗"
     echo -e "║              ${WHITE}GOSTC 服务管理工具箱${PURPLE}             ║"
-    echo -e "║               ${YELLOW}版本: v2.2${PURPLE}                   ║"
+    echo -e "║               ${YELLOW}版本: v2.3${PURPLE}                   ║"
     echo "╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -698,7 +699,10 @@ check_update() {
     if [ "$remote_version" != "$local_version" ]; then
         echo -e "${GREEN}发现新版本: v$remote_version${NC}"
         echo -e "${YELLOW}更新日志:${NC}"
-        echo "$remote_content" | grep -A10 "更新日志:"
+        
+        # 仅显示更新日志部分
+        echo "$remote_content" | awk '/^# 更新日志:/{flag=1; next} /^# [^ ]/{flag=0} flag' | sed 's/^# //'
+        
         echo ""
         
         read -p "$(echo -e "${BLUE}是否更新到最新版本? (y/n, 默认y): ${NC}")" update_choice
@@ -709,6 +713,9 @@ check_update() {
             echo -e "${GREEN}✓ 工具箱已更新到 v$remote_version${NC}"
             echo -e "${BLUE}请重新运行命令: ${WHITE}$TOOL_NAME${NC}"
             exit 0
+        else
+            echo -e "${YELLOW}▶ 已取消更新，继续使用当前版本${NC}"
+            sleep 1
         fi
     else
         echo -e "${GREEN}✓ 当前已是最新版本 (v$local_version)${NC}"
@@ -756,10 +763,4 @@ main_menu() {
 }
 
 # 脚本入口
-if [ "$1" != "--installed" ]; then
-    # 首次运行或通过管道运行
-    main_menu
-else
-    # 已安装版本运行
-    main_menu
-fi
+main_menu
