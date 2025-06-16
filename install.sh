@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.4.0"
+TOOL_VERSION="1.4.1"
 CHANGELOG=(
+"1.4.1 - 优化更新检查提示"
 "1.4.0 - 添加自动更新检查功能"
 "1.3.0 - 添加工具箱自动更新功能"
 "1.2.0 - 整合服务端和节点管理功能"
@@ -121,24 +122,38 @@ check_update() {
     fi
 }
 
-# 自动检查更新（不提示直接更新）
+# 自动检查更新（带友好提示）
 auto_check_update() {
+    # 显示更新检查提示
+    echo -e "${YELLOW}▶ 正在检查工具箱更新...${NC}"
+    echo -e "${BLUE}▷ 当前版本: ${WHITE}v$TOOL_VERSION${NC}"
+    
     # 获取最新版本
     latest_version=$(curl -s "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
     
     if [[ -z "$latest_version" ]]; then
+        echo -e "${RED}✗ 无法获取最新版本信息${NC}"
         return
     fi
     
-    if [[ "$latest_version" != "$TOOL_VERSION" ]]; then
-        echo -e "${YELLOW}▶ 发现新版本 v$latest_version，正在更新...${NC}"
-        sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" && {
-            sudo chmod +x "$TOOL_PATH"
-            echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
-            echo -e "${BLUE}请重新运行 ${WHITE}gotool${BLUE} 命令${NC}"
-            exit 0
-        }
+    if [[ "$latest_version" == "$TOOL_VERSION" ]]; then
+        echo -e "${GREEN}✓ 当前已是最新版本${NC}"
+        return
     fi
+    
+    # 发现新版本，提示用户
+    echo -e "${GREEN}✓ 发现新版本: ${WHITE}v$latest_version${NC}"
+    echo -e "${YELLOW}▶ 正在自动更新工具箱...${NC}"
+    
+    # 执行更新
+    sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" && {
+        sudo chmod +x "$TOOL_PATH"
+        echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
+        echo -e "${BLUE}请重新运行 ${WHITE}gotool${BLUE} 命令${NC}"
+        exit 0
+    } || {
+        echo -e "${RED}✗ 自动更新失败，请手动更新${NC}"
+    }
 }
 
 # 服务端管理菜单
@@ -936,7 +951,7 @@ uninstall_node() {
 
 # 主菜单
 main_menu() {
-    # 自动检查更新（静默模式）
+    # 自动检查更新（带友好提示）
     auto_check_update
     
     while true; do
