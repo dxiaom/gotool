@@ -3,8 +3,7 @@
 # 工具箱版本和更新日志
 TOOL_VERSION="1.4.3"
 CHANGELOG=(
-"1.4.3 - 使用国内镜像解决下载问题"
-"1.4.2 - 优化颜色展示，统一颜色主题"
+"1.4.3 - 优化颜色展示，统一颜色主题"
 "1.4.1 - 优化更新检查提示"
 "1.4.0 - 添加自动更新检查功能"
 "1.3.0 - 添加工具箱自动更新功能"
@@ -27,16 +26,12 @@ NC='\033[0m' # 重置颜色
 # 工具箱安装路径
 TOOL_PATH="/usr/local/bin/gotool"
 
-# 使用国内镜像地址
-MIRROR_URL="http://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/main/install.sh"
-
 # 安装模式检测
 if [ ! -t 0 ]; then
     # 管道安装模式
-    echo -e "${TITLE}▶ 正在通过国内镜像安装 GOSTC 工具箱...${NC}"
-    sudo curl -fL "$MIRROR_URL" -o "$TOOL_PATH" || {
+    echo -e "${TITLE}▶ 正在安装 GOSTC 工具箱...${NC}"
+    sudo curl -fL "http://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
         echo -e "${RED}✗ 工具箱下载失败${NC}"
-        echo -e "${YELLOW}请尝试手动下载: ${OPTION_TEXT}$MIRROR_URL${NC}"
         exit 1
     }
     sudo chmod +x "$TOOL_PATH"
@@ -89,10 +84,10 @@ uninstall_toolbox() {
 
 # 检查更新
 check_update() {
-    echo -e "${YELLOW}▶ 正在通过国内镜像检查更新...${NC}"
+    echo -e "${YELLOW}▶ 正在检查更新...${NC}"
     
     # 获取最新版本
-    latest_version=$(curl -s "$MIRROR_URL" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    latest_version=$(curl -s "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
     
     if [[ -z "$latest_version" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
@@ -115,8 +110,8 @@ check_update() {
     
     read -rp "是否立即更新到最新版本? (y/n, 默认 y): " confirm
     if [[ "$confirm" != "n" ]]; then
-        echo -e "${YELLOW}▶ 正在通过国内镜像更新工具箱...${NC}"
-        sudo curl -fL "$MIRROR_URL" -o "$TOOL_PATH" || {
+        echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
+        sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" || {
             echo -e "${RED}✗ 更新失败${NC}"
             return
         }
@@ -132,11 +127,11 @@ check_update() {
 # 自动检查更新（带友好提示）
 auto_check_update() {
     # 显示更新检查提示
-    echo -e "${YELLOW}▶ 正在通过国内镜像检查工具箱更新...${NC}"
+    echo -e "${YELLOW}▶ 正在检查工具箱更新...${NC}"
     echo -e "${TITLE}▷ 当前版本: ${OPTION_TEXT}v$TOOL_VERSION${NC}"
     
     # 获取最新版本
-    latest_version=$(curl -s "$MIRROR_URL" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    latest_version=$(curl -s "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
     
     if [[ -z "$latest_version" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
@@ -150,10 +145,10 @@ auto_check_update() {
     
     # 发现新版本，提示用户
     echo -e "${GREEN}✓ 发现新版本: ${OPTION_TEXT}v$latest_version${NC}"
-    echo -e "${YELLOW}▶ 正在通过国内镜像自动更新工具箱...${NC}"
+    echo -e "${YELLOW}▶ 正在自动更新工具箱...${NC}"
     
     # 执行更新
-    sudo curl -fL "$MIRROR_URL" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
