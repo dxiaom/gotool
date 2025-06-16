@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.4.3"
+TOOL_VERSION="1.4.4"
 CHANGELOG=(
-"1.4.3 - 优化颜色展示，统一颜色主题"
+"1.4.4 - 使用国内镜像解决下载问题"
+"1.4.2 - 优化颜色展示，统一颜色主题"
 "1.4.1 - 优化更新检查提示"
 "1.4.0 - 添加自动更新检查功能"
 "1.3.0 - 添加工具箱自动更新功能"
@@ -30,7 +31,7 @@ TOOL_PATH="/usr/local/bin/gotool"
 if [ ! -t 0 ]; then
     # 管道安装模式
     echo -e "${TITLE}▶ 正在安装 GOSTC 工具箱...${NC}"
-    sudo curl -fL "http://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
+    sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
         echo -e "${RED}✗ 工具箱下载失败${NC}"
         exit 1
     }
