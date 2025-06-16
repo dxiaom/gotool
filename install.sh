@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.4.4"
+TOOL_VERSION="1.4.5"
 CHANGELOG=(
+"1.4.4 - 修复部分bug"
 "1.4.4 - 使用国内镜像解决下载问题"
 "1.4.2 - 优化颜色展示，统一颜色主题"
 "1.4.1 - 优化更新检查提示"
@@ -88,7 +89,7 @@ check_update() {
     echo -e "${YELLOW}▶ 正在检查更新...${NC}"
     
     # 获取最新版本
-    latest_version=$(curl -s "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    latest_version=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
     
     if [[ -z "$latest_version" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
@@ -112,7 +113,7 @@ check_update() {
     read -rp "是否立即更新到最新版本? (y/n, 默认 y): " confirm
     if [[ "$confirm" != "n" ]]; then
         echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
-        sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" || {
+        sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
             echo -e "${RED}✗ 更新失败${NC}"
             return
         }
@@ -132,7 +133,7 @@ auto_check_update() {
     echo -e "${TITLE}▷ 当前版本: ${OPTION_TEXT}v$TOOL_VERSION${NC}"
     
     # 获取最新版本
-    latest_version=$(curl -s "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    latest_version=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
     
     if [[ -z "$latest_version" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
@@ -149,7 +150,7 @@ auto_check_update() {
     echo -e "${YELLOW}▶ 正在自动更新工具箱...${NC}"
     
     # 执行更新
-    sudo curl -fL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
