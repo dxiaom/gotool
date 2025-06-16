@@ -11,16 +11,14 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 重置颜色
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.5.0"
+TOOL_VERSION="1.6.0"
 CHANGELOG="
 版本 $TOOL_VERSION 更新日志:
 ----------------------------------------
-1. 重构脚本架构，优化代码结构
-2. 添加工具箱自身更新功能
-3. 支持WS/WSS服务器验证
-4. 合并系统信息获取函数
-5. 添加服务状态检测
-6. 增加返回上一级菜单功能
+1. 在所有菜单中添加服务状态显示
+2. 优化状态检测逻辑
+3. 添加服务未安装状态显示
+4. 改进用户界面布局
 "
 
 # 安装路径
@@ -36,6 +34,12 @@ if [[ "$0" == "-" ]] || [[ "$0" == "bash" ]]; then
     sudo chmod +x "$TOOL_PATH"
     echo -e "${GREEN}✓ 工具箱安装完成! 请使用 'gotool' 命令运行工具箱${NC}"
     exit 0
+fi
+
+# 检查root权限
+if [ "$(id -u)" != "0" ]; then
+    echo -e "${RED}错误：此脚本必须使用 root 权限运行。请使用 'sudo $0' 或切换至 root 用户执行。${NC}"
+    exit 1
 fi
 
 # 获取系统架构函数
@@ -114,20 +118,44 @@ validate_server_ws() {
     fi
 }
 
+# 检查服务状态函数
+check_service_status() {
+    local service_name=$1
+    local binary_path=$2
+    
+    # 检查服务是否安装
+    if [ ! -f "$binary_path" ]; then
+        echo -e "${YELLOW}[未安装]${NC}"
+        return
+    fi
+    
+    # 检查服务状态
+    if systemctl is-active --quiet "$service_name"; then
+        echo -e "${GREEN}[运行中]${NC}"
+    elif systemctl is-failed --quiet "$service_name"; then
+        echo -e "${RED}[失败]${NC}"
+    else
+        echo -e "${YELLOW}[未运行]${NC}"
+    fi
+}
+
 # 服务端管理函数
 server_management() {
     while true; do
         clear
-        echo -e "${PURPLE}======================${NC}"
-        echo -e "${WHITE}  GOSTC 服务端管理 ${NC}"
-        echo -e "${PURPLE}======================${NC}"
+        # 获取服务状态
+        SERVER_STATUS=$(check_service_status "gostc-admin" "/usr/local/gostc-admin/server")
+        
+        echo -e "${PURPLE}================================${NC}"
+        echo -e "${WHITE}  GOSTC 服务端管理 ${SERVER_STATUS} ${NC}"
+        echo -e "${PURPLE}================================${NC}"
         echo -e "${GREEN}1. 安装/更新服务端${NC}"
         echo -e "${GREEN}2. 启动服务${NC}"
         echo -e "${GREEN}3. 停止服务${NC}"
         echo -e "${GREEN}4. 重启服务${NC}"
         echo -e "${GREEN}5. 卸载服务端${NC}"
         echo -e "${YELLOW}0. 返回主菜单${NC}"
-        echo -e "${PURPLE}======================${NC}"
+        echo -e "${PURPLE}================================${NC}"
         
         read -rp "请输入选项编号: " server_choice
         
@@ -147,9 +175,12 @@ server_management() {
 client_management() {
     while true; do
         clear
-        echo -e "${BLUE}======================${NC}"
-        echo -e "${WHITE}  GOSTC 节点/客户端管理 ${NC}"
-        echo -e "${BLUE}======================${NC}"
+        # 获取服务状态
+        CLIENT_STATUS=$(check_service_status "gostc" "/usr/local/bin/gostc")
+        
+        echo -e "${BLUE}================================${NC}"
+        echo -e "${WHITE}  GOSTC 节点/客户端管理 ${CLIENT_STATUS} ${NC}"
+        echo -e "${BLUE}================================${NC}"
         echo -e "${GREEN}1. 安装节点${NC}"
         echo -e "${GREEN}2. 安装客户端${NC}"
         echo -e "${GREEN}3. 启动服务${NC}"
@@ -157,7 +188,7 @@ client_management() {
         echo -e "${GREEN}5. 重启服务${NC}"
         echo -e "${GREEN}6. 卸载服务${NC}"
         echo -e "${YELLOW}0. 返回主菜单${NC}"
-        echo -e "${BLUE}======================${NC}"
+        echo -e "${BLUE}================================${NC}"
         
         read -rp "请输入选项编号: " client_choice
         
@@ -947,11 +978,15 @@ uninstall_toolbox() {
 main_menu() {
     while true; do
         clear
+        # 获取服务状态
+        SERVER_STATUS=$(check_service_status "gostc-admin" "/usr/local/gostc-admin/server")
+        CLIENT_STATUS=$(check_service_status "gostc" "/usr/local/bin/gostc")
+        
         echo -e "${CYAN}================================${NC}"
         echo -e "${WHITE}   GOSTC 服务管理工具箱 v${TOOL_VERSION}   ${NC}"
         echo -e "${CYAN}================================${NC}"
-        echo -e "${GREEN}1. 服务端管理${NC}"
-        echo -e "${GREEN}2. 节点/客户端管理${NC}"
+        echo -e "${GREEN}1. 服务端管理 ${SERVER_STATUS}${NC}"
+        echo -e "${GREEN}2. 节点/客户端管理 ${CLIENT_STATUS}${NC}"
         echo -e "${BLUE}3. 更新工具箱${NC}"
         echo -e "${RED}4. 卸载工具箱${NC}"
         echo -e "${YELLOW}0. 退出${NC}"
