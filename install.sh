@@ -1,8 +1,13 @@
 #!/bin/bash
 
 # GOSTC 工具箱管理脚本
-VERSION="1.1.0"
+VERSION="1.1.1"
 CHANGELOG="
+版本 1.1.1 (2024-06-16):
+- 修复管道安装问题
+- 优化服务状态检测逻辑
+- 改进系统架构检测
+
 版本 1.1.0 (2024-06-16):
 - 初始版本发布
 - 整合服务端和客户端管理功能
@@ -26,8 +31,15 @@ TOOLBOX_PATH="/usr/local/bin/gotool"
 # 检查是否通过管道安装
 if [ ! -t 0 ]; then
     echo -e "${GREEN}正在安装GOSTC工具箱...${NC}"
-    sudo cp "$0" "$TOOLBOX_PATH"
+    # 创建临时文件保存脚本内容
+    TEMP_FILE=$(mktemp)
+    cat > "$TEMP_FILE"
+    
+    # 安装到目标位置
+    sudo cp "$TEMP_FILE" "$TOOLBOX_PATH"
     sudo chmod +x "$TOOLBOX_PATH"
+    rm -f "$TEMP_FILE"
+    
     echo -e "${GREEN}安装完成！请使用命令 ${WHITE}gotool ${GREEN}运行工具箱。${NC}"
     exit 0
 fi
