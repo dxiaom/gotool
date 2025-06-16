@@ -1,18 +1,19 @@
 #!/bin/bash
 
 # 工具箱版本号
-TOOL_VERSION="1.1.1"
+TOOL_VERSION="1.2.0"
 UPDATE_LOG="
+版本 1.2.0 更新日志：
+  - 合并重复代码，优化函数结构
+  - 创建通用服务管理函数
+  - 简化菜单导航逻辑
+  - 增强错误处理和日志输出
+
 版本 1.1.1 更新日志：
   - 优化了架构检测函数
   - 增强了错误处理
   - 改进了用户提示信息
   - 修复了已知问题
-
-版本 1.1.0 更新日志：
-  - 初始版本发布
-  - 支持服务端和节点/客户端的安装管理
-  - 添加工具箱自动更新功能
 "
 
 # 定义颜色代码
@@ -27,6 +28,24 @@ NC='\033[0m' # 重置颜色
 
 # 工具箱安装路径
 TOOL_PATH="/usr/local/bin/gotool"
+
+# 服务配置常量
+SERVER_CONFIG=(
+    TARGET_DIR:"/usr/local/gostc-admin"
+    BINARY_NAME:"server"
+    SERVICE_NAME:"gostc-admin"
+    CONFIG_FILE:"/usr/local/gostc-admin/config.yml"
+    DEFAULT_ADDR:"127.0.0.1:8080"
+)
+
+CLIENT_CONFIG=(
+    TARGET_DIR:"/usr/local/bin"
+    BINARY_NAME:"gostc"
+    SERVICE_NAME:"gostc"
+    DEFAULT_ADDR:"127.0.0.1:8080"
+)
+
+# ======================== 通用函数 ========================
 
 # 函数: 获取系统信息
 get_system_info() {
@@ -85,6 +104,47 @@ get_system_info() {
     echo "$OS $FILE_SUFFIX"
 }
 
+# 函数: 显示服务状态
+display_status() {
+    local status=$1
+    
+    case "$status" in
+        "active")
+            echo -e "${GREEN}[运行中]${NC}"
+            ;;
+        "inactive")
+            echo -e "${YELLOW}[未运行]${NC}"
+            ;;
+        "failed")
+            echo -e "${RED}[失败]${NC}"
+            ;;
+        "not-installed")
+            echo -e "${YELLOW}[未安装]${NC}"
+            ;;
+        *)
+            echo -e "${YELLOW}[未知]${NC}"
+            ;;
+    esac
+}
+
+# 函数: 检查服务状态
+check_service_status() {
+    local service_name=$1
+    
+    if ! command -v systemctl &> /dev/null; then
+        echo "unknown"
+        return
+    fi
+    
+    if sudo systemctl is-active --quiet "$service_name" 2>/dev/null; then
+        echo "active"
+    elif sudo systemctl is-enabled --quiet "$service_name" 2>/dev/null; then
+        echo "inactive"
+    else
+        echo "not-installed"
+    fi
+}
+
 # 函数: 验证服务器地址 (使用WS/WSS)
 validate_server_address() {
     local address=$1
@@ -117,121 +177,6 @@ validate_server_address() {
     else
         echo -e "${RED}✗ 服务器验证失败 (HTTP $status_code)${NC}"
         return 1
-    fi
-}
-
-# 函数: 检查服务状态
-check_service_status() {
-    local service_name=$1
-    
-    if ! command -v systemctl &> /dev/null; then
-        echo "unknown"
-        return
-    fi
-    
-    if sudo systemctl is-active --quiet "$service_name" 2>/dev/null; then
-        echo "active"
-    elif sudo systemctl is-enabled --quiet "$service_name" 2>/dev/null; then
-        echo "inactive"
-    else
-        echo "not-installed"
-    fi
-}
-
-# 函数: 显示服务状态
-display_status() {
-    local status=$1
-    
-    case "$status" in
-        "active")
-            echo -e "${GREEN}[运行中]${NC}"
-            ;;
-        "inactive")
-            echo -e "${YELLOW}[未运行]${NC}"
-            ;;
-        "failed")
-            echo -e "${RED}[失败]${NC}"
-            ;;
-        "not-installed")
-            echo -e "${YELLOW}[未安装]${NC}"
-            ;;
-        *)
-            echo -e "${YELLOW}[未知]${NC}"
-            ;;
-    esac
-}
-
-# 函数: 安装工具箱
-install_toolbox() {
-    echo -e "${GREEN}▶ 正在安装GOSTC工具箱${NC}"
-    
-    # 下载最新版本
-    echo -e "${BLUE}▷ 下载工具箱脚本...${NC}"
-    if ! curl -sSfL -o "$TOOL_PATH" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"; then
-        echo -e "${RED}✗ 下载工具箱失败${NC}" >&2
-        exit 1
-    fi
-    
-    # 设置权限
-    chmod +x "$TOOL_PATH"
-    
-    echo -e "${GREEN}✓ 工具箱安装成功${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    echo -e "${WHITE}请使用以下命令运行工具箱:${NC}"
-    echo -e "  ${PURPLE}gotool${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    exit 0
-}
-
-# 函数: 卸载工具箱
-uninstall_toolbox() {
-    echo -e "${YELLOW}▶ 确定要卸载GOSTC工具箱吗？${NC}"
-    read -p "$(echo -e "${BLUE}▷ 请输入确认 (y/n): ${NC}")" confirm
-    
-    if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        rm -f "$TOOL_PATH"
-        echo -e "${GREEN}✓ 工具箱已卸载${NC}"
-    else
-        echo -e "${BLUE}▶ 卸载已取消${NC}"
-    fi
-    exit 0
-}
-
-# 函数: 检查更新
-check_updates() {
-    echo -e "${BLUE}▶ 检查工具箱更新...${NC}"
-    
-    # 获取最新版本
-    local latest_version
-    latest_version=$(curl -sSfL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | 
-        grep -m1 'TOOL_VERSION=' | 
-        cut -d'"' -f2)
-    
-    if [[ -z "$latest_version" ]]; then
-        echo -e "${RED}✗ 无法获取最新版本信息${NC}" >&2
-        return 1
-    fi
-    
-    if [[ "$TOOL_VERSION" == "$latest_version" ]]; then
-        echo -e "${GREEN}✓ 当前已是最新版本 (v$TOOL_VERSION)${NC}"
-    else
-        echo -e "${YELLOW}▶ 发现新版本: v$latest_version${NC}"
-        echo -e "${CYAN}════════════════ 更新日志 ══════════════════${NC}"
-        
-        # 获取更新日志
-        local latest_log
-        latest_log=$(curl -sSfL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | 
-            sed -n '/UPDATE_LOG="/,/^"/p' | 
-            sed '1s/UPDATE_LOG="//;$s/"$//')
-            
-        echo -e "${latest_log:-$UPDATE_LOG}"
-        echo -e "${CYAN}════════════════════════════════════════════${NC}"
-        
-        read -p "$(echo -e "${BLUE}▷ 是否更新到最新版本? (y/n): ${NC}")" confirm
-        
-        if [[ "$confirm" =~ ^[Yy]$ ]]; then
-            install_toolbox
-        fi
     fi
 }
 
@@ -289,14 +234,219 @@ download_and_extract() {
     return 0
 }
 
-# 函数: 服务端管理菜单
-server_menu() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
-    local CONFIG_FILE="${TARGET_DIR}/config.yml"
+# 函数: 通用服务控制
+service_control() {
+    local action=$1
+    local service_name=$2
+    local binary_path=$3
+    
+    case $action in
+        start)
+            echo -e "${BLUE}▶ 启动服务...${NC}"
+            ;;
+        stop)
+            echo -e "${BLUE}▶ 停止服务...${NC}"
+            ;;
+        restart)
+            echo -e "${BLUE}▶ 重启服务...${NC}"
+            ;;
+        *)
+            echo -e "${RED}✗ 无效的操作: $action${NC}"
+            return 1
+            ;;
+    esac
+    
+    if [[ ! -f "$binary_path" ]]; then
+        echo -e "${RED}✗ 服务未安装，请先安装${NC}"
+        return 1
+    fi
+    
+    local command="sudo systemctl $action $service_name"
+    if ! eval "$command"; then
+        echo -e "${RED}✗ 服务${action}失败${NC}"
+        return 1
+    fi
+    
+    sleep 1
+    local service_status
+    service_status=$(check_service_status "$service_name")
+    
+    case $action in
+        start)
+            if [[ "$service_status" == "active" ]]; then
+                echo -e "${GREEN}✓ 服务已成功启动${NC}"
+            else
+                echo -e "${YELLOW}⚠ 服务状态: $service_status${NC}"
+            fi
+            ;;
+        stop)
+            if [[ "$service_status" != "active" ]]; then
+                echo -e "${GREEN}✓ 服务已停止${NC}"
+            else
+                echo -e "${YELLOW}⚠ 服务仍在运行${NC}"
+            fi
+            ;;
+        restart)
+            if [[ "$service_status" == "active" ]]; then
+                echo -e "${GREEN}✓ 服务已成功重启${NC}"
+            else
+                echo -e "${YELLOW}⚠ 服务状态: $service_status${NC}"
+            fi
+            ;;
+    esac
+    
+    sleep 1
+    return 0
+}
+
+# 函数: 通用服务卸载
+uninstall_service() {
+    local service_name=$1
+    local target_dir=$2
+    local binary_name=$3
+    local uninstall_cmd=$4
+    
+    echo -e "${YELLOW}▶ 确定要卸载服务吗？${NC}"
+    read -p "$(echo -e "${BLUE}▷ 请输入确认 (y/n): ${NC}")" confirm
+    
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}▶ 卸载已取消${NC}"
+        return 0
+    fi
+    
+    # 停止服务
+    if sudo systemctl is-active --quiet "$service_name" 2>/dev/null; then
+        echo -e "${YELLOW}▷ 停止服务...${NC}"
+        sudo systemctl stop "$service_name"
+    fi
+    
+    # 禁用服务
+    if sudo systemctl is-enabled --quiet "$service_name" 2>/dev/null; then
+        echo -e "${YELLOW}▷ 禁用服务...${NC}"
+        sudo systemctl disable "$service_name"
+    fi
+    
+    # 执行特定卸载命令
+    if [[ -f "${target_dir}/${binary_name}" && -n "$uninstall_cmd" ]]; then
+        echo -e "${YELLOW}▷ 执行卸载命令...${NC}"
+        sudo "${target_dir}/${binary_name}" $uninstall_cmd
+    fi
+    
+    # 删除文件
+    echo -e "${YELLOW}▷ 删除文件...${NC}"
+    sudo rm -rf "$target_dir"
+    
+    # 删除服务文件
+    sudo rm -f "/etc/systemd/system/${service_name}.service"
+    sudo systemctl daemon-reload
+    
+    echo -e "${GREEN}✓ 服务已卸载${NC}"
+    sleep 1
+}
+
+# 函数: 获取配置值
+get_config_value() {
+    local config_type=$1
+    local key=$2
+    
+    case $config_type in
+        server)
+            local -n config=SERVER_CONFIG
+            ;;
+        client)
+            local -n config=CLIENT_CONFIG
+            ;;
+        *)
+            echo ""
+            return 1
+            ;;
+    esac
+    
+    for item in "${config[@]}"; do
+        if [[ "$item" == "$key:"* ]]; then
+            echo "${item#*:}"
+            return 0
+        fi
+    done
+    
+    echo ""
+    return 1
+}
+
+# 函数: 安装组件
+install_component() {
+    local component_type=$1
+    local config_type=$2
+    
+    # 获取配置
+    local TARGET_DIR BINARY_NAME
+    TARGET_DIR=$(get_config_value "$config_type" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "$config_type" "BINARY_NAME")
+    
+    echo ""
+    echo -e "${BLUE}▶ 开始安装 ${WHITE}${component_type}${BLUE} 组件"
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    
+    # 获取系统信息
+    local system_info
+    system_info=$(get_system_info)
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+    
+    local OS FILE_SUFFIX
+    OS=$(echo "$system_info" | awk '{print $1}')
+    FILE_SUFFIX=$(echo "$system_info" | awk '{print $2}')
+    
+    echo -e "${BLUE}▷ 检测系统: ${WHITE}${OS}${NC}"
+
+    # 构建下载URL
+    local BASE_URL="https://alist.sian.one/direct/gostc"
+    local FILE_NAME="${BINARY_NAME}_${OS}_${FILE_SUFFIX}"
+    [[ "$OS" == "windows" ]] && 
+        FILE_NAME="${FILE_NAME}.zip" || 
+        FILE_NAME="${FILE_NAME}.tar.gz"
+    local DOWNLOAD_URL="${BASE_URL}/${FILE_NAME}"
+
+    # 下载并解压
+    if ! download_and_extract "$DOWNLOAD_URL" "$TARGET_DIR" "$BINARY_NAME"; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# 函数: 获取用户输入
+get_user_input() {
+    local prompt=$1
+    local default_value=$2
+    local validation_func=$3
     
     while true; do
+        read -p "$(echo -e "${BLUE}▷ ${prompt} (默认 ${WHITE}${default_value}${BLUE}): ${NC}")" input
+        input=${input:-$default_value}
+        
+        if [[ -n "$validation_func" ]]; then
+            if $validation_func "$input"; then
+                echo "$input"
+                return
+            fi
+        else
+            echo "$input"
+            return
+        fi
+    done
+}
+
+# ======================== 服务端函数 ========================
+
+# 函数: 服务端管理菜单
+server_menu() {
+    while true; do
+        # 获取配置
+        local SERVICE_NAME
+        SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
+        
         # 获取服务状态
         local server_status
         server_status=$(check_service_status "$SERVICE_NAME")
@@ -334,10 +484,13 @@ server_menu() {
 
 # 函数: 安装服务端
 install_server() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
-    local CONFIG_FILE="${TARGET_DIR}/config.yml"
+    # 获取配置
+    local TARGET_DIR BINARY_NAME SERVICE_NAME CONFIG_FILE DEFAULT_ADDR
+    TARGET_DIR=$(get_config_value "server" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "server" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
+    CONFIG_FILE=$(get_config_value "server" "CONFIG_FILE")
+    DEFAULT_ADDR=$(get_config_value "server" "DEFAULT_ADDR")
     
     clear
     echo -e "${PURPLE}"
@@ -527,349 +680,52 @@ install_server() {
     read -n 1 -s -r -p "$(echo -e "${BLUE}▷ 按任意键继续...${NC}")"
 }
 
-# 函数: 启动服务端
+# 服务端控制函数
 start_server() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "server" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "server" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
     
-    echo -e "${BLUE}▶ 启动服务端...${NC}"
-    
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务端未安装，请先安装${NC}"
-        return 1
-    fi
-    
-    if sudo systemctl start "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" == "active" ]]; then
-            echo -e "${GREEN}✓ 服务端已成功启动${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务端状态: ${SERVICE_STATUS}${NC}"
-        fi
-    else
-        echo -e "${RED}✗ 服务端启动失败${NC}"
-    fi
-    
-    sleep 1
+    service_control "start" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
 }
 
-# 函数: 停止服务端
 stop_server() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "server" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "server" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
     
-    echo -e "${BLUE}▶ 停止服务端...${NC}"
-    
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务端未安装${NC}"
-        return 1
-    fi
-    
-    if sudo systemctl stop "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" != "active" ]]; then
-            echo -e "${GREEN}✓ 服务端已停止${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务端仍在运行${NC}"
-        fi
-    else
-        echo -e "${RED}✗ 服务端停止失败${NC}"
-    fi
-    
-    sleep 1
+    service_control "stop" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
 }
 
-# 函数: 重启服务端
 restart_server() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "server" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "server" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
     
-    echo -e "${BLUE}▶ 重启服务端...${NC}"
-    
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务端未安装${NC}"
-        return 1
-    fi
-    
-    if sudo systemctl restart "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" == "active" ]]; then
-            echo -e "${GREEN}✓ 服务端已成功重启${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务端状态: ${SERVICE_STATUS}${NC}"
-        fi
-    else
-        echo -e "${RED}✗ 服务端重启失败${NC}"
-    fi
-    
-    sleep 1
+    service_control "restart" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
 }
 
-# 函数: 卸载服务端
 uninstall_server() {
-    local TARGET_DIR="/usr/local/gostc-admin"
-    local BINARY_NAME="server"
-    local SERVICE_NAME="gostc-admin"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "server" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "server" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "server" "SERVICE_NAME")
     
-    echo -e "${YELLOW}▶ 确定要卸载服务端吗？${NC}"
-    read -p "$(echo -e "${BLUE}▷ 请输入确认 (y/n): ${NC}")" confirm
-    
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}▶ 卸载已取消${NC}"
-        return 0
-    fi
-    
-    # 停止服务
-    if sudo systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}▷ 停止服务...${NC}"
-        sudo systemctl stop "$SERVICE_NAME"
-    fi
-    
-    # 禁用服务
-    if sudo systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}▷ 禁用服务...${NC}"
-        sudo systemctl disable "$SERVICE_NAME"
-    fi
-    
-    # 卸载服务
-    if [[ -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${YELLOW}▷ 卸载服务...${NC}"
-        sudo "${TARGET_DIR}/${BINARY_NAME}" service uninstall
-    fi
-    
-    # 删除文件
-    echo -e "${YELLOW}▷ 删除文件...${NC}"
-    sudo rm -rf "$TARGET_DIR"
-    
-    # 删除服务文件
-    sudo rm -f "/etc/systemd/system/${SERVICE_NAME}.service"
-    sudo systemctl daemon-reload
-    
-    echo -e "${GREEN}✓ 服务端已卸载${NC}"
-    sleep 1
+    uninstall_service "$SERVICE_NAME" "$TARGET_DIR" "$BINARY_NAME" "service uninstall"
 }
 
-# 函数: 安装节点
-install_node() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
-    
-    # 配置提示
-    clear
-    echo -e "${BLUE}"
-    echo "══════════════════════════════════════════════════"
-    echo -e "          ${WHITE}GOSTC 节点安装向导${BLUE}"
-    echo "══════════════════════════════════════════════════"
-    echo -e "${NC}"
-    echo -e "${GREEN}提示: 请准备好以下信息："
-    echo -e "  - 服务器地址 (如: example.com:8080)"
-    echo -e "  - 节点密钥 (由服务端提供)"
-    echo -e "  - (可选) 网关代理地址${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    
-    # TLS选项
-    local use_tls="false"
-    read -p "$(echo -e "${BLUE}▷ 是否使用TLS? (y/n, 默认n): ${NC}")" tls_choice
-    if [[ "$tls_choice" =~ ^[Yy]$ ]]; then
-        use_tls="true"
-    fi
-    
-    # 服务器地址
-    local server_addr="127.0.0.1:8080"
-    while true; do
-        read -p "$(echo -e "${BLUE}▷ 输入服务器地址 (默认 ${WHITE}127.0.0.1:8080${BLUE}): ${NC}")" input_addr
-        input_addr=${input_addr:-$server_addr}
-        
-        if validate_server_address "$input_addr" "$use_tls"; then
-            server_addr="$input_addr"
-            break
-        else
-            echo -e "${RED}✗ 请重新输入有效的服务器地址${NC}"
-        fi
-    done
-    
-    # 节点密钥
-    local node_key=""
-    while [[ -z "$node_key" ]]; do
-        read -p "$(echo -e "${BLUE}▷ 输入节点密钥: ${NC}")" node_key
-        if [[ -z "$node_key" ]]; then
-            echo -e "${RED}✗ 节点密钥不能为空${NC}"
-        fi
-    done
-    
-    # 网关代理选项
-    local proxy_base_url=""
-    read -p "$(echo -e "${BLUE}▷ 是否使用网关代理? (y/n, 默认n): ${NC}")" proxy_choice
-    if [[ "$proxy_choice" =~ ^[Yy]$ ]]; then
-        while true; do
-            read -p "$(echo -e "${BLUE}▷ 输入网关地址 (包含http/https前缀): ${NC}")" proxy_url
-            if [[ "$proxy_url" =~ ^https?:// ]]; then
-                proxy_base_url="$proxy_url"
-                break
-            else
-                echo -e "${RED}✗ 网关地址必须以http://或https://开头${NC}"
-            fi
-        done
-    fi
-    
-    # 安装组件
-    if ! install_component "节点"; then
-        return 1
-    fi
-    
-    # 构建安装命令
-    local install_cmd="sudo $TARGET_DIR/$BINARY_NAME install --tls=$use_tls -addr $server_addr -s -key $node_key"
-    
-    if [[ -n "$proxy_base_url" ]]; then
-        install_cmd+=" --proxy-base-url $proxy_base_url"
-    fi
-    
-    # 添加配置提示
-    echo ""
-    echo -e "${BLUE}▶ 正在配置节点${NC}"
-    
-    # 执行安装命令
-    if ! eval "$install_cmd"; then
-        echo -e "${RED}✗ 节点配置失败${NC}" >&2
-        return 1
-    fi
-    
-    # 启动服务
-    echo ""
-    echo -e "${BLUE}▶ 正在启动服务${NC}"
-    if sudo systemctl start "$SERVICE_NAME"; then
-        echo -e "${GREEN}✓ 服务启动成功${NC}"
-    else
-        echo -e "${RED}✗ 服务启动失败${NC}" >&2
-        return 1
-    fi
-    
-    # 安装完成提示
-    echo ""
-    echo -e "${BLUE}══════════════════════════════════════════════════"
-    echo -e "                   ${WHITE}节点安装成功${BLUE}                  "
-    echo -e "══════════════════════════════════════════════════"
-    echo -e "  组件: ${WHITE}节点${BLUE}"
-    echo -e "  安装目录: ${WHITE}$TARGET_DIR${BLUE}"
-    echo -e "  服务器地址: ${WHITE}$server_addr${BLUE}"
-    echo -e "  TLS: ${WHITE}$use_tls${BLUE}"
-    if [[ -n "$proxy_base_url" ]]; then
-        echo -e "  网关地址: ${WHITE}$proxy_base_url${BLUE}"
-    fi
-    echo -e "══════════════════════════════════════════════════"
-    echo -e "${NC}"
-    
-    read -n 1 -s -r -p "$(echo -e "${BLUE}▷ 按任意键继续...${NC}")"
-}
+# ======================== 客户端函数 ========================
 
-# 函数: 安装客户端
-install_client() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
-    
-    # 配置提示
-    clear
-    echo -e "${BLUE}"
-    echo "══════════════════════════════════════════════════"
-    echo -e "          ${WHITE}GOSTC 客户端安装向导${BLUE}"
-    echo "══════════════════════════════════════════════════"
-    echo -e "${NC}"
-    echo -e "${GREEN}提示: 请准备好以下信息："
-    echo -e "  - 服务器地址 (如: example.com:8080)"
-    echo -e "  - 客户端密钥 (由服务端提供)${NC}"
-    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    
-    # TLS选项
-    local use_tls="false"
-    read -p "$(echo -e "${BLUE}▷ 是否使用TLS? (y/n, 默认n): ${NC}")" tls_choice
-    if [[ "$tls_choice" =~ ^[Yy]$ ]]; then
-        use_tls="true"
-    fi
-    
-    # 服务器地址
-    local server_addr="127.0.0.1:8080"
-    while true; do
-        read -p "$(echo -e "${BLUE}▷ 输入服务器地址 (默认 ${WHITE}127.0.0.1:8080${BLUE}): ${NC}")" input_addr
-        input_addr=${input_addr:-$server_addr}
-        
-        if validate_server_address "$input_addr" "$use_tls"; then
-            server_addr="$input_addr"
-            break
-        else
-            echo -e "${RED}✗ 请重新输入有效的服务器地址${NC}"
-        fi
-    done
-    
-    # 客户端密钥
-    local client_key=""
-    while [[ -z "$client_key" ]]; do
-        read -p "$(echo -e "${BLUE}▷ 输入客户端密钥: ${NC}")" client_key
-        if [[ -z "$client_key" ]]; then
-            echo -e "${RED}✗ 客户端密钥不能为空${NC}"
-        fi
-    done
-    
-    # 安装组件
-    if ! install_component "客户端"; then
-        return 1
-    fi
-    
-    # 构建安装命令
-    local install_cmd="sudo $TARGET_DIR/$BINARY_NAME install --tls=$use_tls -addr $server_addr -key $client_key"
-    
-    # 添加配置提示
-    echo ""
-    echo -e "${BLUE}▶ 正在配置客户端${NC}"
-    
-    # 执行安装命令
-    if ! eval "$install_cmd"; then
-        echo -e "${RED}✗ 客户端配置失败${NC}" >&2
-        return 1
-    fi
-    
-    # 启动服务
-    echo ""
-    echo -e "${BLUE}▶ 正在启动服务${NC}"
-    if sudo systemctl start "$SERVICE_NAME"; then
-        echo -e "${GREEN}✓ 服务启动成功${NC}"
-    else
-        echo -e "${RED}✗ 服务启动失败${NC}" >&2
-        return 1
-    fi
-    
-    # 安装完成提示
-    echo ""
-    echo -e "${BLUE}══════════════════════════════════════════════════"
-    echo -e "                   ${WHITE}客户端安装成功${BLUE}                "
-    echo -e "══════════════════════════════════════════════════"
-    echo -e "  组件: ${WHITE}客户端${BLUE}"
-    echo -e "  安装目录: ${WHITE}$TARGET_DIR${BLUE}"
-    echo -e "  服务器地址: ${WHITE}$server_addr${BLUE}"
-    echo -e "  TLS: ${WHITE}$use_tls${BLUE}"
-    echo -e "══════════════════════════════════════════════════"
-    echo -e "${NC}"
-    
-    read -n 1 -s -r -p "$(echo -e "${BLUE}▷ 按任意键继续...${NC}")"
-}
-
-# 函数: 节点/客户端管理菜单
+# 函数: 客户端管理菜单
 client_menu() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
-    
     while true; do
+        # 获取配置
+        local SERVICE_NAME
+        SERVICE_NAME=$(get_config_value "client" "SERVICE_NAME")
+        
         # 获取服务状态
         local client_status
         client_status=$(check_service_status "$SERVICE_NAME")
@@ -907,136 +763,221 @@ client_menu() {
     done
 }
 
-# 函数: 启动节点/客户端
-start_client() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
+# 通用安装函数
+install_gostc_component() {
+    local component_type=$1
+    local config_type=$2
+    local extra_params=$3
     
-    echo -e "${BLUE}▶ 启动服务...${NC}"
+    # 获取配置
+    local TARGET_DIR BINARY_NAME SERVICE_NAME DEFAULT_ADDR
+    TARGET_DIR=$(get_config_value "$config_type" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "$config_type" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "$config_type" "SERVICE_NAME")
+    DEFAULT_ADDR=$(get_config_value "$config_type" "DEFAULT_ADDR")
     
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务未安装，请先安装${NC}"
+    # 配置提示
+    clear
+    echo -e "${BLUE}"
+    echo "══════════════════════════════════════════════════"
+    echo -e "          ${WHITE}GOSTC ${component_type}安装向导${BLUE}"
+    echo "══════════════════════════════════════════════════"
+    echo -e "${NC}"
+    echo -e "${GREEN}提示: 请准备好以下信息："
+    echo -e "  - 服务器地址 (如: example.com:8080)"
+    echo -e "  - ${component_type}密钥 (由服务端提供)${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    
+    # TLS选项
+    local use_tls="false"
+    read -p "$(echo -e "${BLUE}▷ 是否使用TLS? (y/n, 默认n): ${NC}")" tls_choice
+    if [[ "$tls_choice" =~ ^[Yy]$ ]]; then
+        use_tls="true"
+    fi
+    
+    # 服务器地址
+    local server_addr
+    server_addr=$(get_user_input "输入服务器地址" "$DEFAULT_ADDR" "validate_server_address \"\$input\" \"$use_tls\"")
+    
+    # 密钥
+    local key_type="密钥"
+    [[ "$component_type" == "节点" ]] && key_type="节点密钥" || key_type="客户端密钥"
+    
+    local key=""
+    while [[ -z "$key" ]]; do
+        read -p "$(echo -e "${BLUE}▷ 输入${key_type}: ${NC}")" key
+        if [[ -z "$key" ]]; then
+            echo -e "${RED}✗ ${key_type}不能为空${NC}"
+        fi
+    done
+    
+    # 安装组件
+    if ! install_component "$component_type" "$config_type"; then
         return 1
     fi
     
+    # 构建安装命令
+    local install_cmd="sudo $TARGET_DIR/$BINARY_NAME install --tls=$use_tls -addr $server_addr $extra_params -key $key"
+    
+    # 添加配置提示
+    echo ""
+    echo -e "${BLUE}▶ 正在配置${component_type}${NC}"
+    
+    # 执行安装命令
+    if ! eval "$install_cmd"; then
+        echo -e "${RED}✗ ${component_type}配置失败${NC}" >&2
+        return 1
+    fi
+    
+    # 启动服务
+    echo ""
+    echo -e "${BLUE}▶ 正在启动服务${NC}"
     if sudo systemctl start "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" == "active" ]]; then
-            echo -e "${GREEN}✓ 服务已成功启动${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务状态: ${SERVICE_STATUS}${NC}"
-        fi
+        echo -e "${GREEN}✓ 服务启动成功${NC}"
     else
-        echo -e "${RED}✗ 服务启动失败${NC}"
+        echo -e "${RED}✗ 服务启动失败${NC}" >&2
+        return 1
     fi
     
-    sleep 1
+    # 安装完成提示
+    echo ""
+    echo -e "${BLUE}══════════════════════════════════════════════════"
+    echo -e "                   ${WHITE}${component_type}安装成功${BLUE}                "
+    echo -e "══════════════════════════════════════════════════"
+    echo -e "  组件: ${WHITE}${component_type}${BLUE}"
+    echo -e "  安装目录: ${WHITE}$TARGET_DIR${BLUE}"
+    echo -e "  服务器地址: ${WHITE}$server_addr${BLUE}"
+    echo -e "  TLS: ${WHITE}$use_tls${BLUE}"
+    echo -e "══════════════════════════════════════════════════"
+    echo -e "${NC}"
+    
+    read -n 1 -s -r -p "$(echo -e "${BLUE}▷ 按任意键继续...${NC}")"
 }
 
-# 函数: 停止节点/客户端
+# 安装节点
+install_node() {
+    install_gostc_component "节点" "client" "-s"
+}
+
+# 安装客户端
+install_client() {
+    install_gostc_component "客户端" "client"
+}
+
+# 客户端控制函数
+start_client() {
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "client" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "client" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "client" "SERVICE_NAME")
+    
+    service_control "start" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
+}
+
 stop_client() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "client" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "client" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "client" "SERVICE_NAME")
     
-    echo -e "${BLUE}▶ 停止服务...${NC}"
-    
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务未安装${NC}"
-        return 1
-    fi
-    
-    if sudo systemctl stop "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" != "active" ]]; then
-            echo -e "${GREEN}✓ 服务已停止${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务仍在运行${NC}"
-        fi
-    else
-        echo -e "${RED}✗ 服务停止失败${NC}"
-    fi
-    
-    sleep 1
+    service_control "stop" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
 }
 
-# 函数: 重启节点/客户端
 restart_client() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "client" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "client" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "client" "SERVICE_NAME")
     
-    echo -e "${BLUE}▶ 重启服务...${NC}"
-    
-    if [[ ! -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${RED}✗ 服务未安装${NC}"
-        return 1
-    fi
-    
-    if sudo systemctl restart "$SERVICE_NAME"; then
-        sleep 1
-        local SERVICE_STATUS
-        SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME")
-        if [[ "$SERVICE_STATUS" == "active" ]]; then
-            echo -e "${GREEN}✓ 服务已成功重启${NC}"
-        else
-            echo -e "${YELLOW}⚠ 服务状态: ${SERVICE_STATUS}${NC}"
-        fi
-    else
-        echo -e "${RED}✗ 服务重启失败${NC}"
-    fi
-    
-    sleep 1
+    service_control "restart" "$SERVICE_NAME" "${TARGET_DIR}/${BINARY_NAME}"
 }
 
-# 函数: 卸载节点/客户端
 uninstall_client() {
-    local TARGET_DIR="/usr/local/bin"
-    local BINARY_NAME="gostc"
-    local SERVICE_NAME="gostc"
+    local TARGET_DIR BINARY_NAME SERVICE_NAME
+    TARGET_DIR=$(get_config_value "client" "TARGET_DIR")
+    BINARY_NAME=$(get_config_value "client" "BINARY_NAME")
+    SERVICE_NAME=$(get_config_value "client" "SERVICE_NAME")
     
-    echo -e "${YELLOW}▶ 确定要卸载服务吗？${NC}"
+    uninstall_service "$SERVICE_NAME" "$TARGET_DIR" "$BINARY_NAME" "uninstall"
+}
+
+# ======================== 工具箱函数 ========================
+
+# 函数: 安装工具箱
+install_toolbox() {
+    echo -e "${GREEN}▶ 正在安装GOSTC工具箱${NC}"
+    
+    # 下载最新版本
+    echo -e "${BLUE}▷ 下载工具箱脚本...${NC}"
+    if ! curl -sSfL -o "$TOOL_PATH" "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh"; then
+        echo -e "${RED}✗ 下载工具箱失败${NC}" >&2
+        exit 1
+    fi
+    
+    # 设置权限
+    chmod +x "$TOOL_PATH"
+    
+    echo -e "${GREEN}✓ 工具箱安装成功${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    echo -e "${WHITE}请使用以下命令运行工具箱:${NC}"
+    echo -e "  ${PURPLE}gotool${NC}"
+    echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
+    exit 0
+}
+
+# 函数: 卸载工具箱
+uninstall_toolbox() {
+    echo -e "${YELLOW}▶ 确定要卸载GOSTC工具箱吗？${NC}"
     read -p "$(echo -e "${BLUE}▷ 请输入确认 (y/n): ${NC}")" confirm
     
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        rm -f "$TOOL_PATH"
+        echo -e "${GREEN}✓ 工具箱已卸载${NC}"
+    else
         echo -e "${BLUE}▶ 卸载已取消${NC}"
-        return 0
     fi
-    
-    # 停止服务
-    if sudo systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}▷ 停止服务...${NC}"
-        sudo systemctl stop "$SERVICE_NAME"
-    fi
-    
-    # 禁用服务
-    if sudo systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}▷ 禁用服务...${NC}"
-        sudo systemctl disable "$SERVICE_NAME"
-    fi
-    
-    # 卸载服务
-    if [[ -f "${TARGET_DIR}/${BINARY_NAME}" ]]; then
-        echo -e "${YELLOW}▷ 卸载服务...${NC}"
-        sudo "${TARGET_DIR}/${BINARY_NAME}" uninstall
-    fi
-    
-    # 删除文件
-    echo -e "${YELLOW}▷ 删除文件...${NC}"
-    sudo rm -f "${TARGET_DIR}/${BINARY_NAME}"
-    
-    # 删除服务文件
-    sudo rm -f "/etc/systemd/system/${SERVICE_NAME}.service"
-    sudo systemctl daemon-reload
-    
-    echo -e "${GREEN}✓ 服务已卸载${NC}"
-    sleep 1
+    exit 0
 }
+
+# 函数: 检查更新
+check_updates() {
+    echo -e "${BLUE}▶ 检查工具箱更新...${NC}"
+    
+    # 获取最新版本
+    local latest_version
+    latest_version=$(curl -sSfL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | 
+        grep -m1 'TOOL_VERSION=' | 
+        cut -d'"' -f2)
+    
+    if [[ -z "$latest_version" ]]; then
+        echo -e "${RED}✗ 无法获取最新版本信息${NC}" >&2
+        return 1
+    fi
+    
+    if [[ "$TOOL_VERSION" == "$latest_version" ]]; then
+        echo -e "${GREEN}✓ 当前已是最新版本 (v$TOOL_VERSION)${NC}"
+    else
+        echo -e "${YELLOW}▶ 发现新版本: v$latest_version${NC}"
+        echo -e "${CYAN}════════════════ 更新日志 ══════════════════${NC}"
+        
+        # 获取更新日志
+        local latest_log
+        latest_log=$(curl -sSfL "https://raw.githubusercontent.com/dxiaom/gotool/main/install.sh" | 
+            sed -n '/UPDATE_LOG="/,/^"/p' | 
+            sed '1s/UPDATE_LOG="//;$s/"$//')
+            
+        echo -e "${latest_log:-$UPDATE_LOG}"
+        echo -e "${CYAN}════════════════════════════════════════════${NC}"
+        
+        read -p "$(echo -e "${BLUE}▷ 是否更新到最新版本? (y/n): ${NC}")" confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            install_toolbox
+        fi
+    fi
+}
+
+# ======================== 主菜单 ========================
 
 # 函数: 主菜单
 main_menu() {
@@ -1051,8 +992,8 @@ main_menu() {
     while true; do
         # 获取服务状态
         local server_status client_status
-        server_status=$(check_service_status "gostc-admin")
-        client_status=$(check_service_status "gostc")
+        server_status=$(check_service_status "$(get_config_value "server" "SERVICE_NAME")")
+        client_status=$(check_service_status "$(get_config_value "client" "SERVICE_NAME")")
         
         clear
         echo -e "${PURPLE}"
