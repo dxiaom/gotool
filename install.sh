@@ -3,7 +3,7 @@
 # 工具箱版本和更新日志
 TOOL_VERSION="1.4.6"
 CHANGELOG=(
-"1.4.6 - "添加节点/客户端更新功能"
+"1.4.6 - 修复部分bug，添加节点/客户端更新功能"
 "1.4.5 - 修复部分bug"
 "1.4.4 - 使用国内镜像解决下载问题"
 "1.4.2 - 优化颜色展示，统一颜色主题"
@@ -105,11 +105,13 @@ check_update() {
     echo -e "${TITLE}▷ 当前版本: ${OPTION_TEXT}v$TOOL_VERSION${NC}"
     echo -e "${TITLE}▷ 最新版本: ${OPTION_TEXT}v$latest_version${NC}"
     
+    # 只显示最新版本的更新日志
     echo -e "${YELLOW}════════════════ 更新日志 ════════════════${NC}"
-    # 显示所有更新日志（最新版本在最前面）
-    for log in "${CHANGELOG[@]}"; do
-        echo -e "${OPTION_TEXT}$log${NC}"
-    done
+    if [ ${#CHANGELOG[@]} -gt 0 ]; then
+        echo -e "${OPTION_TEXT}${CHANGELOG[0]}${NC}"
+    else
+        echo -e "${YELLOW}暂无更新日志${NC}"
+    fi
     echo -e "${YELLOW}══════════════════════════════════════════${NC}"
     
     read -rp "是否立即更新到最新版本? (y/n, 默认 y): " confirm
@@ -149,6 +151,16 @@ auto_check_update() {
     
     # 发现新版本，提示用户
     echo -e "${GREEN}✓ 发现新版本: ${OPTION_TEXT}v$latest_version${NC}"
+    
+    # 只显示最新版本的更新日志
+    echo -e "${YELLOW}════════════════ 更新日志 ════════════════${NC}"
+    if [ ${#CHANGELOG[@]} -gt 0 ]; then
+        echo -e "${OPTION_TEXT}${CHANGELOG[0]}${NC}"
+    else
+        echo -e "${YELLOW}暂无更新日志${NC}"
+    fi
+    echo -e "${YELLOW}══════════════════════════════════════════${NC}"
+    
     echo -e "${YELLOW}▶ 正在自动更新工具箱...${NC}"
     
     # 执行更新
@@ -524,7 +536,7 @@ node_management() {
         echo -e "${OPTION_NUM}3. ${OPTION_TEXT}重启节点/客户端${NC}"
         echo -e "${OPTION_NUM}4. ${OPTION_TEXT}停止节点/客户端${NC}"
         echo -e "${OPTION_NUM}5. ${OPTION_TEXT}卸载节点/客户端${NC}"
-        echo -e "${OPTION_NUM}6. ${OPTION_TEXT}更新节点/客户端${NC}"  # 新增更新选项
+        echo -e "${OPTION_NUM}6. ${OPTION_TEXT}更新节点/客户端${NC}"   # 新增选项
         echo -e "${OPTION_NUM}0. ${OPTION_TEXT}返回主菜单${NC}"
         echo -e "${SEPARATOR}==================================================${NC}"
         
@@ -535,7 +547,7 @@ node_management() {
             3) restart_node ;;
             4) stop_node ;;
             5) uninstall_node ;;
-            6) update_node_client ;;  # 调用更新函数
+            6) update_node_client ;;   # 新增更新函数
             0) return ;;
             *) echo -e "${RED}无效选项${NC}" ;;
         esac
@@ -952,7 +964,7 @@ uninstall_node() {
     
     # 删除文件
     echo -e "${YELLOW}▷ 删除安装文件...${NC}"
-    sudo rm -f /usr/local/bin/gostc
+        sudo rm -f /usr/local/bin/gostc
     
     echo -e "${GREEN}✓ 节点/客户端已卸载${NC}"
 }
@@ -963,13 +975,12 @@ update_node_client() {
         echo -e "${RED}✗ 节点/客户端未安装，请先安装${NC}"
         return
     fi
-    
-    echo -e "${YELLOW}▶ 正在更新节点/客户端...${NC}"
-    
+
     # 获取系统信息
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m)
-    
+    echo -e "${TITLE}▷ 检测系统: ${OPTION_TEXT}${OS} ${ARCH}${NC}"
+
     # 架构检测
     FILE_SUFFIX=""
     case "$ARCH" in
@@ -995,18 +1006,23 @@ update_node_client() {
             return
             ;;
     esac
-    
+
     # Windows系统检测
     [[ "$OS" == *"mingw"* || "$OS" == *"cygwin"* ]] && OS="windows"
-    
-    # 构建下载URL
+
+    # 构建下载URL（默认使用普通版本）
     BASE_URL="https://alist.sian.one/direct/gostc"
     FILE_NAME="gostc_${OS}_${FILE_SUFFIX}"
     [ "$OS" = "windows" ] && FILE_NAME="${FILE_NAME}.zip" || FILE_NAME="${FILE_NAME}.tar.gz"
     DOWNLOAD_URL="${BASE_URL}/${FILE_NAME}"
-    
-    echo -e "${TITLE}▷ 下载更新文件: ${OPTION_TEXT}${FILE_NAME}${NC}"
-    
+
+    echo -e "${TITLE}▷ 下载文件: ${OPTION_TEXT}${FILE_NAME}${NC}"
+    echo -e "${SEPARATOR}==================================================${NC}"
+
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
+    cd "$TMP_DIR" || return
+
     # 下载文件
     curl -# -fL -o "$FILE_NAME" "$DOWNLOAD_URL" || {
         echo ""
@@ -1014,48 +1030,48 @@ update_node_client() {
         echo -e "${RED}URL: $DOWNLOAD_URL${NC}"
         return
     }
-    
+
     # 停止服务
-    if sudo systemctl is-active --quiet gostc; then
-        echo -e "${YELLOW}▷ 停止运行中的服务...${NC}"
-        sudo systemctl stop gostc
-    fi
-    
-    # 解压文件
-    echo -e "${TITLE}▷ 更新二进制文件...${NC}"
-    sudo rm -f /usr/local/bin/gostc  # 删除旧文件
-    
+    echo -e "${YELLOW}▷ 停止节点/客户端服务...${NC}"
+    sudo systemctl stop gostc
+
+    # 解压文件并替换二进制
+    echo -e "${TITLE}▷ 正在更新节点/客户端...${NC}"
     if [[ "$FILE_NAME" == *.zip ]]; then
-        sudo unzip -qo "$FILE_NAME" -d "/usr/local/bin"
+        unzip -qo "$FILE_NAME" -d "$TMP_DIR"
     elif [[ "$FILE_NAME" == *.tar.gz ]]; then
-        sudo tar xzf "$FILE_NAME" -C "/usr/local/bin"
+        tar xzf "$FILE_NAME" -C "$TMP_DIR"
     else
         echo -e "${RED}错误: 不支持的文件格式: $FILE_NAME${NC}"
         return
     fi
-    
-    # 设置权限
-    if [ -f "/usr/local/bin/gostc" ]; then
+
+    # 移动新文件到目标位置
+    if [ -f "$TMP_DIR/gostc" ]; then
+        sudo mv -f "$TMP_DIR/gostc" "/usr/local/bin/gostc"
         sudo chmod 755 "/usr/local/bin/gostc"
-        echo -e "${GREEN}✓ 已更新二进制文件${NC}"
+        echo -e "${GREEN}✓ 节点/客户端更新成功${NC}"
     else
         echo -e "${RED}错误: 解压后未找到二进制文件 gostc${NC}"
+        # 重启服务（因为之前停止了）
+        sudo systemctl start gostc
         return
     fi
-    
-    # 清理
-    rm -f "$FILE_NAME"
-    
+
+    # 清理临时文件
+    cd - >/dev/null || return
+    rm -rf "$TMP_DIR"
+
     # 启动服务
-    echo -e "${YELLOW}▷ 重新启动服务...${NC}"
+    echo -e "${YELLOW}▷ 启动节点/客户端服务...${NC}"
     sudo systemctl start gostc
-    
+
     # 检查服务状态
     sleep 2
     if sudo systemctl is-active --quiet gostc; then
-        echo -e "${GREEN}✓ 节点/客户端已成功更新并启动${NC}"
+        echo -e "${GREEN}✓ 节点/客户端已成功启动${NC}"
     else
-        echo -e "${YELLOW}⚠ 服务启动可能存在问题，请检查状态${NC}"
+        echo -e "${YELLOW}⚠ 节点/客户端启动可能存在问题${NC}"
     fi
 }
 
