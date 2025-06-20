@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.4.5"
+TOOL_VERSION="1.4.6"
 CHANGELOG=(
+"1.4.6 - "添加节点/客户端更新功能"
 "1.4.5 - 修复部分bug"
 "1.4.4 - 使用国内镜像解决下载问题"
 "1.4.2 - 优化颜色展示，统一颜色主题"
@@ -105,6 +106,7 @@ check_update() {
     echo -e "${TITLE}▷ 最新版本: ${OPTION_TEXT}v$latest_version${NC}"
     
     echo -e "${YELLOW}════════════════ 更新日志 ════════════════${NC}"
+    # 显示所有更新日志（最新版本在最前面）
     for log in "${CHANGELOG[@]}"; do
         echo -e "${OPTION_TEXT}$log${NC}"
     done
@@ -522,6 +524,7 @@ node_management() {
         echo -e "${OPTION_NUM}3. ${OPTION_TEXT}重启节点/客户端${NC}"
         echo -e "${OPTION_NUM}4. ${OPTION_TEXT}停止节点/客户端${NC}"
         echo -e "${OPTION_NUM}5. ${OPTION_TEXT}卸载节点/客户端${NC}"
+        echo -e "${OPTION_NUM}6. ${OPTION_TEXT}更新节点/客户端${NC}"  # 新增更新选项
         echo -e "${OPTION_NUM}0. ${OPTION_TEXT}返回主菜单${NC}"
         echo -e "${SEPARATOR}==================================================${NC}"
         
@@ -532,6 +535,7 @@ node_management() {
             3) restart_node ;;
             4) stop_node ;;
             5) uninstall_node ;;
+            6) update_node_client ;;  # 调用更新函数
             0) return ;;
             *) echo -e "${RED}无效选项${NC}" ;;
         esac
@@ -951,6 +955,108 @@ uninstall_node() {
     sudo rm -f /usr/local/bin/gostc
     
     echo -e "${GREEN}✓ 节点/客户端已卸载${NC}"
+}
+
+# 更新节点/客户端
+update_node_client() {
+    if ! command -v "gostc" &> /dev/null; then
+        echo -e "${RED}✗ 节点/客户端未安装，请先安装${NC}"
+        return
+    fi
+    
+    echo -e "${YELLOW}▶ 正在更新节点/客户端...${NC}"
+    
+    # 获取系统信息
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    
+    # 架构检测
+    FILE_SUFFIX=""
+    case "$ARCH" in
+        "x86_64") FILE_SUFFIX="amd64_v1" ;;
+        "i"*"86") FILE_SUFFIX="386_sse2" ;;
+        "aarch64"|"arm64") FILE_SUFFIX="arm64_v8.0" ;;
+        "armv7l") FILE_SUFFIX="arm_7" ;;
+        "armv6l") FILE_SUFFIX="arm_6" ;;
+        "armv5l") FILE_SUFFIX="arm_5" ;;
+        "mips64") lscpu 2>/dev/null | grep -qi "little endian" && FILE_SUFFIX="mips64le_hardfloat" || FILE_SUFFIX="mips64_hardfloat" ;;
+        "mips")
+            if lscpu 2>/dev/null | grep -qi "FPU"; then
+                FLOAT="hardfloat"
+            else
+                FLOAT="softfloat"
+            fi
+            lscpu 2>/dev/null | grep -qi "little endian" && FILE_SUFFIX="mipsle_$FLOAT" || FILE_SUFFIX="mips_$FLOAT"
+            ;;
+        "riscv64") FILE_SUFFIX="riscv64_rva20u64" ;;
+        "s390x") FILE_SUFFIX="s390x" ;;
+        *)
+            echo -e "${RED}错误: 不支持的架构: $ARCH${NC}"
+            return
+            ;;
+    esac
+    
+    # Windows系统检测
+    [[ "$OS" == *"mingw"* || "$OS" == *"cygwin"* ]] && OS="windows"
+    
+    # 构建下载URL
+    BASE_URL="https://alist.sian.one/direct/gostc"
+    FILE_NAME="gostc_${OS}_${FILE_SUFFIX}"
+    [ "$OS" = "windows" ] && FILE_NAME="${FILE_NAME}.zip" || FILE_NAME="${FILE_NAME}.tar.gz"
+    DOWNLOAD_URL="${BASE_URL}/${FILE_NAME}"
+    
+    echo -e "${TITLE}▷ 下载更新文件: ${OPTION_TEXT}${FILE_NAME}${NC}"
+    
+    # 下载文件
+    curl -# -fL -o "$FILE_NAME" "$DOWNLOAD_URL" || {
+        echo ""
+        echo -e "${RED}✗ 错误: 文件下载失败!${NC}"
+        echo -e "${RED}URL: $DOWNLOAD_URL${NC}"
+        return
+    }
+    
+    # 停止服务
+    if sudo systemctl is-active --quiet gostc; then
+        echo -e "${YELLOW}▷ 停止运行中的服务...${NC}"
+        sudo systemctl stop gostc
+    fi
+    
+    # 解压文件
+    echo -e "${TITLE}▷ 更新二进制文件...${NC}"
+    sudo rm -f /usr/local/bin/gostc  # 删除旧文件
+    
+    if [[ "$FILE_NAME" == *.zip ]]; then
+        sudo unzip -qo "$FILE_NAME" -d "/usr/local/bin"
+    elif [[ "$FILE_NAME" == *.tar.gz ]]; then
+        sudo tar xzf "$FILE_NAME" -C "/usr/local/bin"
+    else
+        echo -e "${RED}错误: 不支持的文件格式: $FILE_NAME${NC}"
+        return
+    fi
+    
+    # 设置权限
+    if [ -f "/usr/local/bin/gostc" ]; then
+        sudo chmod 755 "/usr/local/bin/gostc"
+        echo -e "${GREEN}✓ 已更新二进制文件${NC}"
+    else
+        echo -e "${RED}错误: 解压后未找到二进制文件 gostc${NC}"
+        return
+    fi
+    
+    # 清理
+    rm -f "$FILE_NAME"
+    
+    # 启动服务
+    echo -e "${YELLOW}▷ 重新启动服务...${NC}"
+    sudo systemctl start gostc
+    
+    # 检查服务状态
+    sleep 2
+    if sudo systemctl is-active --quiet gostc; then
+        echo -e "${GREEN}✓ 节点/客户端已成功更新并启动${NC}"
+    else
+        echo -e "${YELLOW}⚠ 服务启动可能存在问题，请检查状态${NC}"
+    fi
 }
 
 # 主菜单
