@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.5.0"
+TOOL_VERSION="1.5.1"
 CHANGELOG=(
+"1.5.1 - 修复日志显示问题，优化其他问题"
 "1.5.0 - 修复部分bug，添加节点/客户端更新功能"
 "1.4.5 - 修复部分bug"
 "1.4.4 - 使用国内镜像解决下载问题"
@@ -14,6 +15,7 @@ CHANGELOG=(
 "1.1.0 - 添加节点/客户端管理功能"
 "1.0.0 - 初始版本，服务端管理功能"
 )
+#!/bin/bash
 
 # 定义颜色代码
 TITLE='\033[0;34m'      # 标题颜色 (蓝色)
@@ -85,17 +87,39 @@ uninstall_toolbox() {
     fi
 }
 
+# 获取最新版本信息
+get_latest_version_info() {
+    # 获取最新版本和更新日志
+    local remote_script
+    remote_script=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh")
+    
+    # 提取最新版本号
+    local latest_version
+    latest_version=$(grep 'TOOL_VERSION=' <<< "$remote_script" | head -1 | cut -d'"' -f2)
+    
+    # 提取最新版本的更新日志（第一行）
+    local latest_changelog
+    latest_changelog=$(grep -m1 '^"' <<< "$remote_script" | cut -d'"' -f2)
+    
+    echo "$latest_version|$latest_changelog"
+}
+
 # 检查更新
 check_update() {
     echo -e "${YELLOW}▶ 正在检查更新...${NC}"
     
-    # 获取最新版本
-    latest_version=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    # 获取最新版本信息
+    local latest_info
+    latest_info=$(get_latest_version_info)
     
-    if [[ -z "$latest_version" ]]; then
+    if [[ -z "$latest_info" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
         return
     fi
+    
+    # 解析最新版本信息
+    local latest_version="${latest_info%|*}"
+    local latest_changelog="${latest_info#*|}"
     
     if [[ "$latest_version" == "$TOOL_VERSION" ]]; then
         echo -e "${GREEN}✓ 当前已是最新版本 (v$TOOL_VERSION)${NC}"
@@ -105,10 +129,10 @@ check_update() {
     echo -e "${TITLE}▷ 当前版本: ${OPTION_TEXT}v$TOOL_VERSION${NC}"
     echo -e "${TITLE}▷ 最新版本: ${OPTION_TEXT}v$latest_version${NC}"
     
-    # 只显示最新版本的更新日志
+    # 显示最新版本的更新日志
     echo -e "${YELLOW}════════════════ 更新日志 ════════════════${NC}"
-    if [ ${#CHANGELOG[@]} -gt 0 ]; then
-        echo -e "${OPTION_TEXT}${CHANGELOG[0]}${NC}"
+    if [[ -n "$latest_changelog" ]]; then
+        echo -e "${OPTION_TEXT}$latest_changelog${NC}"
     else
         echo -e "${YELLOW}暂无更新日志${NC}"
     fi
@@ -136,13 +160,18 @@ auto_check_update() {
     echo -e "${YELLOW}▶ 正在检查工具箱更新...${NC}"
     echo -e "${TITLE}▷ 当前版本: ${OPTION_TEXT}v$TOOL_VERSION${NC}"
     
-    # 获取最新版本
-    latest_version=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" | grep 'TOOL_VERSION=' | head -1 | cut -d'"' -f2)
+    # 获取最新版本信息
+    local latest_info
+    latest_info=$(get_latest_version_info)
     
-    if [[ -z "$latest_version" ]]; then
+    if [[ -z "$latest_info" ]]; then
         echo -e "${RED}✗ 无法获取最新版本信息${NC}"
         return
     fi
+    
+    # 解析最新版本信息
+    local latest_version="${latest_info%|*}"
+    local latest_changelog="${latest_info#*|}"
     
     if [[ "$latest_version" == "$TOOL_VERSION" ]]; then
         echo -e "${GREEN}✓ 当前已是最新版本${NC}"
@@ -152,10 +181,10 @@ auto_check_update() {
     # 发现新版本，提示用户
     echo -e "${GREEN}✓ 发现新版本: ${OPTION_TEXT}v$latest_version${NC}"
     
-    # 只显示最新版本的更新日志
+    # 显示最新版本的更新日志
     echo -e "${YELLOW}════════════════ 更新日志 ════════════════${NC}"
-    if [ ${#CHANGELOG[@]} -gt 0 ]; then
-        echo -e "${OPTION_TEXT}${CHANGELOG[0]}${NC}"
+    if [[ -n "$latest_changelog" ]]; then
+        echo -e "${OPTION_TEXT}$latest_changelog${NC}"
     else
         echo -e "${YELLOW}暂无更新日志${NC}"
     fi
@@ -244,7 +273,7 @@ install_server() {
     # 选择版本
     echo -e "${TITLE}请选择安装版本:${NC}"
     echo -e "${OPTION_NUM}1. ${OPTION_TEXT}普通版本 (默认)${NC}"
-    echo -e "${OPTION_NUM}2. ${OPTION_TEXT}商业版本 (需要授权)${NC}"
+    echo -e "${OPTION_Num}2. ${OPTION_TEXT}商业版本 (需要授权)${NC}"
     echo -e "${NC}"
 
     read -rp "请输入选项编号 (1-2, 默认 1): " version_choice
@@ -536,7 +565,7 @@ node_management() {
         echo -e "${OPTION_NUM}3. ${OPTION_TEXT}重启节点/客户端${NC}"
         echo -e "${OPTION_NUM}4. ${OPTION_TEXT}停止节点/客户端${NC}"
         echo -e "${OPTION_NUM}5. ${OPTION_TEXT}卸载节点/客户端${NC}"
-        echo -e "${OPTION_NUM}6. ${OPTION_TEXT}更新节点/客户端${NC}"   # 新增选项
+        echo -e "${OPTION_NUM}6. ${OPTION_TEXT}更新节点/客户端${NC}"
         echo -e "${OPTION_NUM}0. ${OPTION_TEXT}返回主菜单${NC}"
         echo -e "${SEPARATOR}==================================================${NC}"
         
@@ -547,7 +576,7 @@ node_management() {
             3) restart_node ;;
             4) stop_node ;;
             5) uninstall_node ;;
-            6) update_node_client ;;   # 新增更新函数
+            6) update_node_client ;;
             0) return ;;
             *) echo -e "${RED}无效选项${NC}" ;;
         esac
@@ -964,7 +993,7 @@ uninstall_node() {
     
     # 删除文件
     echo -e "${YELLOW}▷ 删除安装文件...${NC}"
-        sudo rm -f /usr/local/bin/gostc
+    sudo rm -f /usr/local/bin/gostc
     
     echo -e "${GREEN}✓ 节点/客户端已卸载${NC}"
 }
