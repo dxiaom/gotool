@@ -3,6 +3,7 @@
 # 工具箱版本和更新日志
 TOOL_VERSION="1.7.1"
 CHANGELOG=(
+"1.7.2 - 优化国内访问"
 "1.7.1 - 其他下版本号，啥也没更新好像是"
 "1.7.0 - 极致代码精简、统一架构处理、菜单系统重构、用户交互优化、错误处理强化、服务操作统一、减少50%的系统调用、下载和安装流程合并、服务状态检测优化、避免不必要的临时文件"
 "1.6.0 - 代码结构优化，精简40%代码，移除了所有非必要变量和冗余代码、功能函数精简、架构检测优化、安装流程简化、用户交互改进、变量命名优化、代码结构扁平化"
@@ -50,7 +51,7 @@ NODE_SVC="gostc"
 # 安装模式检测
 if [ ! -t 0 ]; then
     echo -e "${TITLE}▶ 正在安装 GOSTC 工具箱...${NC}"
-    sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
+    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
         echo -e "${RED}✗ 工具箱下载失败${NC}"
         exit 1
     }
@@ -92,7 +93,7 @@ uninstall_toolbox() {
 
 # 获取最新版本信息
 get_latest_version() {
-    local script=$(curl -s "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh")
+    local script=$(curl -s "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh")
     local version=$(awk -F'"' '/TOOL_VERSION=/{print $2; exit}' <<< "$script")
     local changelog=$(grep -m1 '^"' <<< "$script" | cut -d'"' -f2)
     echo "$version|$changelog"
@@ -118,7 +119,7 @@ check_update() {
     [[ "$confirm" == "n" ]] && echo -e "${TITLE}▶ 更新已取消${NC}" && return
     
     echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
-    sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
@@ -145,7 +146,7 @@ auto_check_update() {
     echo -e "${YELLOW}══════════════════════════════════════════${NC}"
     echo -e "${YELLOW}▶ 正在自动更新...${NC}"
     
-    sudo curl -fL "https://git.wavee.cn/raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
