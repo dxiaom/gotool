@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 工具箱版本和更新日志
-TOOL_VERSION="1.7.1"
+TOOL_VERSION="1.7.2"
 CHANGELOG=(
 "1.7.2 - 优化国内访问"
 "1.7.1 - 其他下版本号，啥也没更新好像是"
