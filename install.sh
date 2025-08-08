@@ -51,7 +51,7 @@ NODE_SVC="gostc"
 # 安装模式检测
 if [ ! -t 0 ]; then
     echo -e "${TITLE}▶ 正在安装 GOSTC 工具箱...${NC}"
-    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
+    sudo curl -fL "https://edgeone.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" || {
         echo -e "${RED}✗ 工具箱下载失败${NC}"
         exit 1
     }
@@ -93,7 +93,7 @@ uninstall_toolbox() {
 
 # 获取最新版本信息
 get_latest_version() {
-    local script=$(curl -s "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh")
+    local script=$(curl -s "https://edgeone.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh")
     local version=$(awk -F'"' '/TOOL_VERSION=/{print $2; exit}' <<< "$script")
     local changelog=$(grep -m1 '^"' <<< "$script" | cut -d'"' -f2)
     echo "$version|$changelog"
@@ -119,7 +119,7 @@ check_update() {
     [[ "$confirm" == "n" ]] && echo -e "${TITLE}▶ 更新已取消${NC}" && return
     
     echo -e "${YELLOW}▶ 正在更新工具箱...${NC}"
-    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://edgeone.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
@@ -146,7 +146,7 @@ auto_check_update() {
     echo -e "${YELLOW}══════════════════════════════════════════${NC}"
     echo -e "${YELLOW}▶ 正在自动更新...${NC}"
     
-    sudo curl -fL "https://hk.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
+    sudo curl -fL "https://edgeone.gh-proxy.com/https://raw.githubusercontent.com/dxiaom/gotool/refs/heads/main/install.sh" -o "$TOOL_PATH" && {
         sudo chmod +x "$TOOL_PATH"
         echo -e "${GREEN}✓ 工具箱已更新到 v$latest_version${NC}"
         echo -e "${TITLE}请重新运行 ${OPTION_TEXT}gotool${TITLE} 命令${NC}"
